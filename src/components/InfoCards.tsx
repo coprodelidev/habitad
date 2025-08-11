@@ -1,3 +1,4 @@
+'use client';
 
 const InfoCards: React.FC = () => {
   return (

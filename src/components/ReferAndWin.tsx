@@ -1,3 +1,4 @@
+'use client';
 
 const ReferAndWin: React.FC = () => {
   return (
