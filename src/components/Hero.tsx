@@ -6,7 +6,7 @@ import Image from 'next/image';
 export default function Hero() {
   const slides = [
     '/images/slider1.jpg',
-    '/images/hslider2.jpg',
+    '/images/slider2.jpg',
     '/images/slider3.jpg',
   ];
 
