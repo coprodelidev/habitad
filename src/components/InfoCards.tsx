@@ -8,7 +8,7 @@ export default function InfoCards() {
       {/* Card con imagen de fondo */}
       <div className="relative flex min-w-[280px] max-w-[350px] flex-1 items-center justify-center overflow-hidden rounded-[20px] bg-slate-700 p-5 text-center text-white shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
         <Image
-          src="/images/placeholder_image.jpg"
+          src="/images/slider1.jpg"
           alt=""
           fill
           priority

@@ -15,7 +15,7 @@ const SectionInfo: React.FC = () => {
           </h2>
 
           <img
-            src="/images/placeholder_image.jpg"
+            src="/images/slider1.jpg"
             alt="familia"
             className="block h-[430px] w-full rounded-tr-[22px] object-cover md:h-[340px] md:rounded-[12px] lg:h-[430px] lg:rounded-tr-[22px]"
           />

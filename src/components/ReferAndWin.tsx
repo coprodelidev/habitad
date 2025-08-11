@@ -8,7 +8,7 @@ const ReferAndWin: React.FC = () => {
       {/* Fondo */}
       <div className="absolute inset-0 -z-10">
         <Image
-          src="/images/placeholder_image.jpg"
+          src="/images/slider1.jpg"
           alt=""
           fill
           priority
