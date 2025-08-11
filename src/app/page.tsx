@@ -1,11 +1,11 @@
-import Footer from '/home/user/studio/src/components/Footer';
-import Hero from '/home/user/studio/src/components/Hero';
-import InfoCards from '/home/user/studio/src/components/InfoCards';
-import Nav from '/home/user/studio/src/components/Nav';
-import ReferAndWin from '/home/user/studio/src/components/ReferAndWin';
-import SectionInfo from '/home/user/studio/src/components/SectionInfo';
-import Testimonials from '/home/user/studio/src/components/Testimonials';
-import TopBar from '/home/user/studio/src/components/TopBar';
+import Footer from '@/components/Footer';
+import Hero from '@/components/Hero';
+import InfoCards from '@/components/InfoCards';
+import Nav from '@/components/Nav';
+import ReferAndWin from '@/components/ReferAndWin';
+import SectionInfo from '@/components/SectionInfo';
+import Testimonials from '@/components/Testimonials';
+import TopBar from '@/components/TopBar';
 
 export default function Home() {
   return (

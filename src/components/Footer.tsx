@@ -8,45 +8,44 @@ const Footer: React.FC = () => {
           <div>
             <Link className="brand" href="#">
               <span className="mark"></span>
-              <span>Los Portales</span>
+              <span>Habitat</span>
             </Link>
             <p style={{ marginTop: '16px', opacity: 0.95 }}>
-              Razón Social: Los Portales S.A.<br />
-              RUC: 20301837896
+              Lorem ipsum dolor sit amet,<br />
+              consectetur adipiscing elit
             </p>
             <div className="social">
-              <Link className="sbtn" href="#" aria-label="Facebook">f</Link>
-              <Link className="sbtn" href="#" aria-label="Instagram">IG</Link>
-              <Link className="sbtn" href="#" aria-label="YouTube">▶</Link>
-              <Link className="sbtn" href="#" aria-label="TikTok">♬</Link>
+              <Link className="sbtn" href="#" aria-label="Facebook">L1</Link>
+              <Link className="sbtn" href="#" aria-label="Instagram">L2</Link>
+              <Link className="sbtn" href="#" aria-label="YouTube">L3</Link>
+              <Link className="sbtn" href="#" aria-label="TikTok">L4</Link>
             </div>
           </div>
           <div>
             <h4>Contacto</h4>
             <ul>
-              <li>(01) 211 4470</li>
+              <li>+1 234 567 890</li>
               <li>
-                Jr. Mariscal la Mar 991,<br />
-                Magdalena del Mar
+                Lorem Ipsum 123,<br />
+                Dolor Sit Amet
               </li>
             </ul>
           </div>
           <div>
             <h4>Legales</h4>
             <ul>
-              <li><Link href="#">Condiciones de Uso</Link></li>
-              <li><Link href="#">Políticas de Cookies</Link></li>
-              <li><Link href="#">Información Legal</Link></li>
-              <li><Link href="#">Políticas de Privacidad</Link></li>
-              <li><Link href="#">Financiamiento</Link></li>
-              <li><Link href="#">Documentación de proveedores</Link></li>
-              <li><Link href="#">Libro de reclamaciones</Link></li>
+              <li><Link href="#">Lorem Ipsum</Link></li>
+              <li><Link href="#">Dolor Sit</Link></li>
+              <li><Link href="#">Amet Consectetur</Link></li>
+              <li><Link href="#">Adipiscing Elit</Link></li>
+              <li><Link href="#">Sed Do</Link></li>
+              <li><Link href="#">Eiusmod Tempor</Link></li>
+              <li><Link href="#">Incididunt Ut</Link></li>
             </ul>
           </div>
           <div>
-            <h4>Portales</h4>
+            <h4>Habitat</h4>
             <ul>
-              <li><Link href="#">Corporativo</Link></li>
               <li><Link href="#">Departamentos</Link></li>
               <li><Link href="#">Hoteles</Link></li>
               <li><Link href="#">Facturación Electrónica</Link></li>
@@ -54,13 +53,13 @@ const Footer: React.FC = () => {
           </div>
         </div>
         <div className="bottom">
-          <span>Copyright © 2024 Los Portales</span>
+          <span>Copyright © 2024 Habitat</span>
           <span>|</span>
-          <span>Todos los derechos reservados</span>
+          <span>All rights reserved</span>
           <span>|</span>
-          <Link href="#">Términos y condiciones</Link>
+          <Link href="#">Terms of Service</Link>
           <span>|</span>
-          <Link href="#">Políticas de Privacidad</Link>
+          <Link href="#">Privacy Policy</Link>
         </div>
       </div>
     </footer>

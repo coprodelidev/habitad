@@ -5,10 +5,10 @@ const TopBar: React.FC = () => {
     <div className="topbar">
       <div className="container">
         <div className="row">
-          <Link href="#">Mi cuenta</Link>
-          <Link href="#">Paga aquí</Link>
-          <Link href="#">Blog</Link>
-          <Link href="#">Compra de Terrenos</Link>
+          <Link href="#">Lorem Ipsum</Link>
+          <Link href="#">Dolor Sit</Link>
+          <Link href="#">Amet Consectetur</Link>
+          <Link href="#">Adipiscing Elit</Link>
         </div>
       </div>
     </div>

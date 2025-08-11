@@ -7,18 +7,18 @@ const Testimonials: React.FC = () => {
       <div className="testimonial">
         <img src="https://picsum.photos/400/300?random=3" alt="persona1" />
         <div className="text">
-          <h3>“Inversión con disfrute asegurado”</h3>
-          <p>Compré con Los Portales para invertir y alquilar, pero también para disfrutar. Todo el proceso fue fácil y sin problemas.</p>
-          <div className="author">Marcial Contreras</div>
-          <div className="project">HU2 - Lima Sur Mirador del Prado</div>
+          <h3>“Lorem ipsum dolor sit amet”</h3>
+          <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+          <div className="author">Lorem Ipsum</div>
+          <div className="project">Habitat - Lorem Ipsum</div>
         </div>
       </div>
       <div className="testimonial">
         <img src="https://picsum.photos/400/300?random=4" alt="persona2" />
         <div className="text">
-          <h3>“Mi inversión con futuro en Chilca”</h3>
-          <p>Compramos en Los Portales por su transparencia, buen precio y el gran potencial de Chilca. ¡Nuestra casa soñada ya es realidad!</p>
-          <div className="author">Patricia Martinelli</div>
+          <h3>“Consectetur adipiscing elit”</h3>
+          <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+          <div className="author">Dolor Sitamet</div>
           <div className="project">MiVivienda - Chilca</div>
         </div>
       </div>

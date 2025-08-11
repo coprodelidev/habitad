@@ -30,12 +30,15 @@ const Hero: React.FC = () => {
   return (
     <header className="hero" style={{ '--hero-bg': `url('${imgs[idx]}')` } as React.CSSProperties}>
       <div className="content">
-        <span className="badge">Lotes en Chilca</span>
-        <h1 className="headline">Donde empieza tu historia,<br />empieza tu hogar</h1>
-        <div className="sub">con servicios básicos y áreas verdes</div>
+        <span className="badge">Lorem Ipsum Dolor</span>
+        <h1 className="headline">Lorem ipsum dolor sit amet,<br/>consectetur adipiscing elit</h1>
+        <div className="sub">Lorem ipsum dolor sit amet, consectetur</div>
         <div className="foot">
           <span>📍</span> A solo minutos de Lima
         </div>
+        <button className="ver-proyecto-button">
+          VER PROYECTO
+        </button>
       </div>
       <div className="hero-dots" aria-label="Selector de diapositivas">
         {imgs.map((_, index) => (
