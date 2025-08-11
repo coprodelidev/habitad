@@ -2,64 +2,123 @@ import Link from 'next/link';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="footer">
-      <div className="container">
-        <div className="grid">
+    <footer className="bg-[#0074bc] text-white">
+      <div className="mx-auto max-w-[1200px] px-5 py-14">
+        {/* Grid principal */}
+        <div className="grid gap-10 lg:[grid-template-columns:1.3fr_1fr_1fr_1fr]">
+          {/* Col 1: brand + copy + social */}
           <div>
-            <Link className="brand" href="#">
-              <span className="mark"></span>
-              <span>Habitat</span>
+            <Link href="#" className="inline-flex items-center gap-3 font-extrabold text-[22px] text-white">
+              <span className="h-7 w-10 rounded-[6px] bg-gradient-to-br from-[#ffd54f] to-[#ffb300]" />
+              Habitat
             </Link>
-            <p style={{ marginTop: '16px', opacity: 0.95 }}>
+
+            <p className="mt-4 opacity-95 text-[18px] leading-relaxed md:text-[18px]">
               Lorem ipsum dolor sit amet,<br />
               consectetur adipiscing elit
             </p>
-            <div className="social">
-              <Link className="sbtn" href="#" aria-label="Facebook">L1</Link>
-              <Link className="sbtn" href="#" aria-label="Instagram">L2</Link>
-              <Link className="sbtn" href="#" aria-label="YouTube">L3</Link>
-              <Link className="sbtn" href="#" aria-label="TikTok">L4</Link>
+
+            <div className="mt-5 flex gap-3">
+              <Link
+                href="#"
+                aria-label="Facebook"
+                className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] font-extrabold"
+              >
+                L1
+              </Link>
+              <Link
+                href="#"
+                aria-label="Instagram"
+                className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] font-extrabold"
+              >
+                L2
+              </Link>
+              <Link
+                href="#"
+                aria-label="YouTube"
+                className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] font-extrabold"
+              >
+                L3
+              </Link>
+              <Link
+                href="#"
+                aria-label="TikTok"
+                className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] font-extrabold"
+              >
+                L4
+              </Link>
             </div>
           </div>
+
+          {/* Col 2: contacto */}
           <div>
-            <h4>Contacto</h4>
-            <ul>
-              <li>+1 234 567 890</li>
-              <li>
-                Lorem Ipsum 123,<br />
-                Dolor Sit Amet
+            <h4 className="mb-4 text-[22px] font-semibold">Contacto</h4>
+            <ul className="flex list-none flex-col gap-3">
+              <li className="text-[18px] leading-7">+1 234 567 890</li>
+              <li className="text-[18px] leading-7">
+                Lorem Ipsum 123,<br />Dolor Sit Amet
               </li>
             </ul>
           </div>
+
+          {/* Col 3: legales */}
           <div>
-            <h4>Legales</h4>
-            <ul>
-              <li><Link href="#">Lorem Ipsum</Link></li>
-              <li><Link href="#">Dolor Sit</Link></li>
-              <li><Link href="#">Amet Consectetur</Link></li>
-              <li><Link href="#">Adipiscing Elit</Link></li>
-              <li><Link href="#">Sed Do</Link></li>
-              <li><Link href="#">Eiusmod Tempor</Link></li>
-              <li><Link href="#">Incididunt Ut</Link></li>
+            <h4 className="mb-4 text-[22px] font-semibold">Legales</h4>
+            <ul className="flex list-none flex-col gap-3">
+              {[
+                'Lorem Ipsum',
+                'Dolor Sit',
+                'Amet Consectetur',
+                'Adipiscing Elit',
+                'Sed Do',
+                'Eiusmod Tempor',
+                'Incididunt Ut',
+              ].map((t) => (
+                <li key={t}>
+                  <Link
+                    href="#"
+                    className="text-[18px] leading-7 text-[#e6f0fa] hover:underline"
+                  >
+                    {t}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
+
+          {/* Col 4: habitat */}
           <div>
-            <h4>Habitat</h4>
-            <ul>
-              <li><Link href="#">Departamentos</Link></li>
-              <li><Link href="#">Hoteles</Link></li>
-              <li><Link href="#">Facturación Electrónica</Link></li>
+            <h4 className="mb-4 text-[22px] font-semibold">Habitat</h4>
+            <ul className="flex list-none flex-col gap-3">
+              {['Departamentos', 'Hoteles', 'Facturación Electrónica'].map((t) => (
+                <li key={t}>
+                  <Link
+                    href="#"
+                    className="text-[18px] leading-7 text-[#e6f0fa] hover:underline"
+                  >
+                    {t}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
-        <div className="bottom">
-          <span>Copyright © 2024 Habitat</span>
-          <span>|</span>
-          <span>All rights reserved</span>
-          <span>|</span>
-          <Link href="#">Terms of Service</Link>
-          <span>|</span>
-          <Link href="#">Privacy Policy</Link>
+
+        {/* Bottom bar */}
+        <div className="mt-9 border-t border-white/35 pt-4">
+          <div className="flex flex-wrap justify-center gap-3 text-center opacity-95">
+            <span className="text-[18px]">Copyright © 2024 Habitat</span>
+            <span>|</span>
+            <span className="text-[18px]">All rights reserved</span>
+            <span>|</span>
+            <Link href="#" className="text-[18px] underline">
+              Terms of Service
+            </Link>
+            <span>|</span>
+            <Link href="#" className="text-[18px] underline">
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

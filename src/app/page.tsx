@@ -7,6 +7,9 @@ import SectionInfo from '@/components/SectionInfo';
 import { Testimonials } from '@/components/Testimonials';
 import TopBar from '@/components/TopBar';
 
+import TestTW from '@/components/TestTW';
+
+
 export default function Home() {
   return (
     <>
