@@ -3,7 +3,7 @@ import Link from 'next/link';
 const ReferAndWin: React.FC = () => {
   return (
     <section className="refer-section">
-      <div className="container">
+      <div className="container" style={{ backgroundImage: 'url(/images/placeholder_image.jpg)' }}>
         <div className="refer-panel">
           <h2 className="refer-title">¡Refiere y gana!</h2>
           <p className="refer-sub">Lorem ipsum dolor sit amet</p>

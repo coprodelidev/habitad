@@ -1,19 +1,14 @@
 'use client';
 
-import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const Hero: React.FC = () => {
   const imgs = [
-    'https://picsum.photos/1600/900?random=1',
-    'https://picsum.photos/1600/900?random=2',
-    'https://picsum.photos/1600/900?random=3',
-    'https://picsum.photos/1600/900?random=4',
-    'https://picsum.photos/1600/900?random=5',
-    'https://picsum.photos/1600/900?random=6',
-    'https://picsum.photos/1600/900?random=7',
-    'https://picsum.photos/1600/900?random=8'
+    '/images/hero_slider_1.jpg',
+    '/images/hero_slider_2.jpg',
+    '/images/hero_slider_3.jpg',
   ];
+
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {
@@ -23,32 +18,31 @@ const Hero: React.FC = () => {
     return () => clearInterval(timer);
   }, [imgs.length]);
 
-  const handleDotClick = (index: number) => {
-    setIdx(index);
-  };
-
   return (
-    <header className="hero" style={{ '--hero-bg': `url('${imgs[idx]}')` } as React.CSSProperties}>
+    <header
+      className="hero"
+      style={{ '--hero-bg': `url('${imgs[idx]}')` } as React.CSSProperties}
+    >
       <div className="content">
-        <span className="badge">Lorem Ipsum Dolor</span>
-        <h1 className="headline">Lorem ipsum dolor sit amet,<br/>consectetur adipiscing elit</h1>
-        <div className="sub">Lorem ipsum dolor sit amet, consectetur</div>
+        <span className="badge">Ica San Bernardo</span>
+        <h1 className="headline">
+          Donde empieza tu historia,<br />empieza tu hogar
+        </h1>
+        <div className="sub">con servicios básicos y áreas verdes</div>
         <div className="foot">
           <span>📍</span> A solo minutos de Lima
         </div>
-        <button className="ver-proyecto-button">
-          VER PROYECTO
-        </button>
+        <button className="ver-proyecto-button">VER PROYECTO</button>
       </div>
+
       <div className="hero-dots" aria-label="Selector de diapositivas">
         {imgs.map((_, index) => (
           <button
             key={index}
             className={`dot ${index === idx ? 'active' : ''}`}
-            data-idx={index}
             aria-label={`Slide ${index + 1}`}
-            onClick={() => handleDotClick(index)}
-          ></button>
+            onClick={() => setIdx(index)}
+          />
         ))}
       </div>
     </header>
