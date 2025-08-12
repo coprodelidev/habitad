@@ -2,25 +2,45 @@
 
 import Link from 'next/link';
 import React, { useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 const Nav: React.FC = () => {
   const [isUrbanizacionesOpen, setIsUrbanizacionesOpen] = useState(false);
+  const pathname = usePathname();
+  const isHome = pathname === '/';
+
+  const basePill =
+    'inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ring-offset-2 ring-offset-[#0E08C9]';
+  const inactivePill =
+    `${basePill} text-white bg-white/10 ring-1 ring-white/25 shadow-sm hover:bg-white hover:text-[#0b1324]`;
+  const activePill =
+    `${basePill} bg-white text-[#0b1324] ring-1 ring-white/70 shadow-md`;
+
+  const subItems = [
+    'Ica San Fernando',
+    'Ica el Huarango',
+    'Casas y Lotes',
+    'Pisco Condominio',
+    'Ica San Bernardo',
+  ];
 
   return (
-    <nav className="bg-white border-b border-[#eef2f6]">
+    <nav className="bg-[#0E08C9] border-b border-white/10">
       <div className="mx-auto max-w-[1200px] px-5">
         <div className="flex items-center gap-5 py-4">
-          {/* Brand */}
-          <Link href="/" className="flex items-center gap-3 font-extrabold text-[22px] text-[#155e8a]">
-            <span className="h-7 w-10 rounded-[6px] bg-gradient-to-br from-[#ffd54f] to-[#ffb300]" />
-            Habitat
-          </Link>
 
           {/* Menu */}
-          <div className="flex gap-[22px] font-semibold text-[#1f2937]">
-            <Link href="#" className="hover:text-[#155e8a]">Inicio</Link>
+          <div className="flex flex-wrap gap-3 md:gap-[14px]">
+            {/* Inicio activo por ruta */}
+            <Link
+              href="/"
+              className={isHome ? activePill : inactivePill}
+              aria-current={isHome ? 'page' : undefined}
+            >
+              Inicio
+            </Link>
 
-            {/* Dropdown */}
+            {/* Urbanizaciones con submenu */}
             <div
               className="relative"
               onMouseEnter={() => setIsUrbanizacionesOpen(true)}
@@ -28,7 +48,7 @@ const Nav: React.FC = () => {
             >
               <button
                 type="button"
-                className="bg-transparent px-0 font-semibold text-[#1f2937] hover:text-[#155e8a]"
+                className={isUrbanizacionesOpen ? activePill : inactivePill}
                 aria-haspopup="true"
                 aria-expanded={isUrbanizacionesOpen}
                 onClick={() => setIsUrbanizacionesOpen(v => !v)}
@@ -42,20 +62,11 @@ const Nav: React.FC = () => {
                   role="menu"
                   className="absolute left-0 top-[calc(100%+10px)] z-50 min-w-[260px] rounded-[12px] border border-[#eef2f6] bg-white py-2 shadow-[0_12px_30px_rgba(16,24,40,.12)]"
                 >
-                  {[
-                    'Ica San Fernando',
-                    'Ica El Huarango',
-                    'Casas y Lotes',
-                    'Pisco Condominio',
-                    'Ica San Bernardo',
-                    'Proceso',
-                    'Preguntas Frecuentes',
-                    'Inscríbete',
-                  ].map((txt) => (
+                  {subItems.map((txt) => (
                     <li key={txt} className="list-none">
                       <Link
                         href="#"
-                        className="block whitespace-nowrap px-4 py-2.5 font-semibold text-[#1f2937] hover:bg-[#f8fafc] hover:text-[#155e8a]"
+                        className="block whitespace-nowrap px-4 py-2.5 font-semibold text-[#0b1324] hover:bg-[#f8fafc]"
                         role="menuitem"
                         onClick={() => setIsUrbanizacionesOpen(false)}
                       >
@@ -67,19 +78,13 @@ const Nav: React.FC = () => {
               )}
             </div>
 
-            <Link href="#" className="hover:text-[#155e8a]">Proveedores y contratistas</Link>
-            <Link href="#" className="hover:text-[#155e8a]">Trabaja con nosotros</Link>
-            <Link href="#" className="hover:text-[#155e8a]">Camposanto</Link>
-            <Link href="#" className="hover:text-[#155e8a]">Construimos para terceros</Link>
+            <Link href="#" className={inactivePill}>Proveedores y Contratistas</Link>
+            <Link href="#" className={inactivePill}>Trabaja con nosotros</Link>
+            <Link href="#" className={inactivePill}>Camposanto</Link>
+            <Link href="#" className={inactivePill}>Construcción para terceros</Link>
+            <Link href="#" className={inactivePill}>Preguntas frecuentes</Link>
           </div>
 
-          {/* CTA */}
-          <Link
-            href="#"
-            className="ml-auto rounded-full bg-[#ffc107] px-5 py-3 font-extrabold text-[#0b1324] hover:brightness-95"
-          >
-            Contacto
-          </Link>
         </div>
       </div>
     </nav>

@@ -7,17 +7,17 @@ import SectionInfo from '@/components/SectionInfo';
 import { Testimonials } from '@/components/Testimonials';
 import TopBar from '@/components/TopBar';
 
-import TestTW from '@/components/TestTW';
 
 
 export default function Home() {
   return (
     <>
-      <TopBar />
-      <Nav />
       <Hero />
+      <Nav />
       <SectionInfo />
       <Testimonials />
+
+
       <InfoCards />
       <ReferAndWin />
       <Footer />

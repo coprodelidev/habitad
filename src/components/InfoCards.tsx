@@ -27,14 +27,14 @@ export default function InfoCards() {
       </div>
 
       {/* Card azul */}
-      <div className="flex min-w-[280px] max-w-[350px] flex-1 flex-col items-center justify-center rounded-[20px] bg-[#0074bc] p-6 text-center text-white shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
+      <div className="flex min-w-[280px] max-w-[350px] flex-1 flex-col items-center justify-center rounded-[20px] bg-[#0E08C9] p-6 text-center text-white shadow-[0_4px_12px_rgba(0,0,0,0.1)]">
         <h3 className="text-[22px] font-extrabold">Lorem ipsum dolor sit amet</h3>
         <p className="mt-5 text-lg font-bold">
           Lorem ipsum <span className="text-[#ffc107]">Habitat</span>
         </p>
         <button
           type="button"
-          className="mt-6 inline-flex items-center gap-2 rounded-[8px] bg-white px-5 py-2 font-extrabold text-[#0074bc] shadow"
+          className="mt-6 inline-flex items-center gap-2 rounded-[8px] bg-white px-5 py-2 font-extrabold text-[#0E08C9] shadow"
         >
           ▶ Suscríbete
         </button>

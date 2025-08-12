@@ -2,14 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function Hero() {
-  const slides = [
-    '/images/slider1.jpg',
-    '/images/slider2.jpg',
-    '/images/slider3.jpg',
-  ];
-
+  const slides = ['/images/slider1.jpg', '/images/slider2.jpg', '/images/slider3.jpg'];
   const [i, setI] = useState(0);
 
   useEffect(() => {
@@ -23,36 +19,70 @@ export default function Hero() {
       <div className="absolute inset-0 -z-20">
         <Image
           src={slides[i]}
-          alt=""
+          alt="Slide de proyecto"
           fill
           priority
           className="object-cover object-center"
         />
       </div>
 
-      {/* Overlay */}
+      {/* Overlay oscuro */}
       <div className="absolute inset-0 -z-10 bg-black/45 md:bg-black/50" />
+
+      {/* LOGO arriba a la izquierda */}
+      <div className="absolute left-6 top-6 z-20">
+        <Link href="/" aria-label="Ir al inicio" className="block">
+          <div className="rounded-3xl bg-white p-4 md:p-5 shadow-lg ring-1 ring-slate-200/80">
+            <Image
+              src="/images/logo.jpg"
+              alt="Habitat"
+              width={180}
+              height={140}
+              priority
+              className="block w-[180px] md:w-[140px] h-auto"
+            />
+          </div>
+        </Link>
+      </div>
+
+      {/* Auth bar: arriba a la derecha */}
+      <div className="absolute right-6 top-6 z-20">
+        <nav
+          aria-label="Acceso"
+          className="inline-flex items-center gap-1 rounded-full bg-white/95 p-1.5
+                     shadow-[0_8px_20px_rgba(0,0,0,.1)] ring-1 ring-black/5
+                     backdrop-blur supports-[backdrop-filter]:bg-white/85"
+        >
+          <Link
+            href="/login"
+            className="inline-flex items-center rounded-full px-4 py-2 text-sm font-extrabold
+                       text-[#0b1324] hover:bg-black/5 focus-visible:outline-none
+                       focus-visible:ring-2 focus-visible:ring-[#0b1324]/40"
+          >
+            Iniciar sesión
+          </Link>
+
+          <Link
+            href="/register"
+            className="inline-flex items-center rounded-full px-4 py-2 text-sm font-extrabold
+                       text-[#0b1324] hover:bg-black/5 focus-visible:outline-none
+                       focus-visible:ring-2 focus-visible:ring-[#0b1324]/40"
+          >
+            Registrarse
+          </Link>
+        </nav>
+      </div>
 
       {/* Contenido alineado a la derecha */}
       <div className="w-full max-w-[1200px] px-6 pb-10 pt-8 text-right md:pb-24 md:pt-14">
-        {/* Badge superior derecha */}
-        <div className="mb-6 flex justify-end">
-          <span className="inline-flex items-center rounded-full bg-[#ffc107] px-5 py-2 text-sm font-extrabold text-[#1a2b3c] md:text-base">
-            Terrenos en ICA
-          </span>
-        </div>
-
-        {/* Headline principal */}
-        <h1 className="mb-3 text-4xl font-extrabold leading-[1.05] sm:text-5xl md:text-6xl lg:text-7xl">
+        <h1 className="mb-3 text-2xl font-extrabold leading-[1.05] sm:text-2xl md:text-2xl lg:text-4xl">
           Donde empieza tu historia,<br />empieza tu hogar
         </h1>
 
-        {/* Subtítulo */}
         <p className="mb-4 text-lg md:text-2xl">
           con <span className="font-bold">servicios básicos y áreas verdes</span>
         </p>
 
-        {/* Chip de ubicación + CTA */}
         <div className="mt-4 flex items-center justify-end gap-3">
           <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold md:text-base">
             <span>📍</span> A solo minutos de Lima

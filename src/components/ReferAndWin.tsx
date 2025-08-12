@@ -18,7 +18,7 @@ const ReferAndWin: React.FC = () => {
 
       <div className="mx-auto max-w-[1200px] px-5">
         <div className="max-w-[640px] rounded-[28px] bg-white px-[34px] py-8 shadow-[0_24px_48px_rgba(16,24,40,.18)] md:ml-12">
-          <h2 className="mb-2 text-[32px] font-extrabold leading-[1.05] text-[#0074bc] md:text-[40px]">
+          <h2 className="mb-2 text-[32px] font-extrabold leading-[1.05] text-[#0E08C9] md:text-[40px]">
             ¡Refiere y gana!
           </h2>
           <p className="mb-6 text-[18px] font-extrabold text-[#0b1324] md:text-[20px]">
@@ -27,19 +27,19 @@ const ReferAndWin: React.FC = () => {
 
           <ul className="mb-6 flex list-none flex-col gap-[22px] p-0">
             <li className="flex items-start text-[18px] leading-[1.4] text-[#164e8e] md:text-[20px]">
-              <span className="mr-[14px] inline-flex h-7 w-7 flex-none items-center justify-center rounded-full border-[3px] border-[#0074bc] font-black text-[#0074bc]">
+              <span className="mr-[14px] inline-flex h-7 w-7 flex-none items-center justify-center rounded-full border-[3px] border-[#0E08C9] font-black text-[#0E08C9]">
                 ✓
               </span>
               Lorem ipsum dolor sit amet, consectetur adipiscing elit.
             </li>
             <li className="flex items-start text-[18px] leading-[1.4] text-[#164e8e] md:text-[20px]">
-              <span className="mr-[14px] inline-flex h-7 w-7 flex-none items-center justify-center rounded-full border-[3px] border-[#0074bc] font-black text-[#0074bc]">
+              <span className="mr-[14px] inline-flex h-7 w-7 flex-none items-center justify-center rounded-full border-[3px] border-[#0E08C9] font-black text-[#0E08C9]">
                 ✓
               </span>
               Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
             </li>
             <li className="flex items-start text-[18px] leading-[1.4] text-[#164e8e] md:text-[20px]">
-              <span className="mr-[14px] inline-flex h-7 w-7 flex-none items-center justify-center rounded-full border-[3px] border-[#0074bc] font-black text-[#0074bc]">
+              <span className="mr-[14px] inline-flex h-7 w-7 flex-none items-center justify-center rounded-full border-[3px] border-[#0E08C9] font-black text-[#0E08C9]">
                 ✓
               </span>
               Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
