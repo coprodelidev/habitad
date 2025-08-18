@@ -9,6 +9,8 @@ const Menu: React.FC = () => {
         <li><Link href="/dashboard" className="hover:underline">Inicio</Link></li>
         <li><Link href="/dashboard/components/catalogo" className="hover:underline">Catálogo</Link></li>
         <li><Link href="/dashboard/components/stock" className="hover:underline">Stock</Link></li> {/* 👈 nuevo */}
+        <li><Link href="/dashboard/components/clientes" className="hover:underline">Clientes</Link></li> {/* 👈 nuevo */}
+
       </ul>
     </nav>
   );
