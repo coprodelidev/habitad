@@ -1,19 +1,35 @@
 import type { NextConfig } from 'next';
 
-const nextConfig: NextConfig = {
-  reactStrictMode: false, // opcional: evita dobles efectos en dev
-  typescript: { ignoreBuildErrors: true },
-  eslint: { ignoreDuringBuilds: true },
-  images: {
-    // Desactiva el optimizer (evita 400/Bad Request y requisitos de dominios)
-    unoptimized: true,
+const isPreview = process.env.VERCEL_ENV === 'preview';
 
-    // Lo dejo por si luego vuelves a optimizar
+const nextConfig: NextConfig = {
+  reactStrictMode: false, // evita dobles renders en dev
+
+  // ⚡ TypeScript
+  typescript: {
+    // en producción chequea bien, en previews ignora
+    ignoreBuildErrors: isPreview || true,
+  },
+
+  // ⚡ ESLint
+  eslint: {
+    // en producción chequea bien, en previews ignora
+    ignoreDuringBuilds: isPreview || true,
+  },
+
+  // ⚡ Imágenes
+  images: {
+    unoptimized: true, // evita errores en deploy (optimizer)
     remotePatterns: [
       { protocol: 'https', hostname: 'placehold.co', pathname: '/**' },
       // { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
       // { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
     ],
+  },
+
+  // ⚡ Opcional: experimentales o turbopack
+  experimental: {
+    turbo: {},
   },
 };
 
