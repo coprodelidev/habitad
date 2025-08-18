@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import Menu from './components/menu';
+import Menu from './components/menu/menu';
 import { Menu as MenuIcon } from 'lucide-react';
 
 interface DashboardLayoutProps {
