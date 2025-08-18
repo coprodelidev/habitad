@@ -49,8 +49,7 @@ export default function RegisterForm() {
               "placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30";
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      {/* Email / Confirmación */}
+<form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 lg:grid-cols-2 gap-3">      {/* Email / Confirmación */}
       <div className="space-y-1">
         <label className="text-xs font-medium text-slate-700">Email</label>
         <input type="email" disabled={loading} className={cls}
