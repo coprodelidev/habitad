@@ -1,3 +1,4 @@
+// src/components/auth/HeroAuthBar.tsx
 'use client';
 
 import { useState } from 'react';
@@ -12,16 +13,18 @@ type Props = {
 };
 
 export default function HeroAuthBar({ className = '', onAuthenticated }: Props) {
+  // Empieza cerrado; se despliega solo al hacer click
   const [tab, setTab] = useState<Tab>(null);
   const toggle = (t: Exclude<Tab, null>) => setTab(prev => (prev === t ? null : t));
 
   return (
     <div className={`w-full ${className}`}>
-      {/* Píldora alineada a la derecha */}
-      <div className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/95 p-1.5
-                      shadow-[0_8px_20px_rgba(0,0,0,.1)] ring-1 ring-black/5
-                      backdrop-blur supports-[backdrop-filter]:bg-white/85">
-        {/* Registrarse a la izquierda */}
+      {/* Píldora alineada a la derecha. "Iniciar sesión" siempre a la derecha */}
+      <div
+        className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/95 p-1.5
+                   shadow-[0_8px_20px_rgba(0,0,0,.12)] ring-1 ring-black/5
+                   backdrop-blur supports-[backdrop-filter]:bg-white/85"
+      >
         <button
           type="button"
           onClick={() => toggle('register')}
@@ -32,7 +35,7 @@ export default function HeroAuthBar({ className = '', onAuthenticated }: Props) 
         >
           Registrarse
         </button>
-        {/* Iniciar sesión siempre a la derecha */}
+
         <button
           type="button"
           onClick={() => toggle('login')}
@@ -45,11 +48,13 @@ export default function HeroAuthBar({ className = '', onAuthenticated }: Props) 
         </button>
       </div>
 
-      {/* Panel reducido 30% y alineado a la derecha */}
+      {/* Panel reducido ~30%, alineado a la derecha y con scroll interno.
+         z alto para tapar adornos detrás. */}
       {tab && (
         <div
-          className="mt-3 ml-auto w-[min(92vw,392px)] rounded-2xl bg-white shadow-xl
-                     ring-1 ring-black/10 max-h-[64vh] overflow-y-auto px-5 py-4"
+          className="relative z-[60] mt-3 ml-auto w-[min(92vw,392px)]
+                     rounded-2xl bg-white shadow-xl ring-1 ring-black/10
+                     max-h-[64vh] overflow-y-auto px-5 py-4"
         >
           {tab === 'login'
             ? <LoginForm onAuthenticated={onAuthenticated} />

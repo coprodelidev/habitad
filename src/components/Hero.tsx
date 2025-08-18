@@ -50,9 +50,9 @@ export default function Hero() {
       <div className="absolute right-6 top-6 z-20">
         <nav
           aria-label="Acceso"
-          className="inline-flex items-center gap-1 rounded-full bg-white/95 p-1.5
-                     shadow-[0_8px_20px_rgba(0,0,0,.1)] ring-1 ring-black/5
-                     backdrop-blur supports-[backdrop-filter]:bg-white/85"
+          className="inline-flex items-center gap-1  p-1.5
+                    
+                     "
         >
 
           <HeroAuthBar />
