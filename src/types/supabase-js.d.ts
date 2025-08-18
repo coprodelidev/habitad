@@ -9,6 +9,7 @@ declare module '@supabase/supabase-js' {
       signUp(opts: { email: string; password: string; options: { data: Record<string, any> } }): Promise<{ data: any; error: Error | null }>;
     };
     from(table: string): {
+      insert(arg0: { id: any; email: string; phone: string; first_name: string; last_name: string; country_code: string; role_code: string; }): { error: any; } | PromiseLike<{ error: any; }>;
       select: (query: string) => any;
       update: (values: Record<string, any>) => any;
       eq: (column: string, value: any) => any;

@@ -18,6 +18,7 @@ export default function LoginForm({ onAuthenticated }: Props) {
   const onSubmit = async (values: FormValues) => {
     setMessage(null);
     setLoading(true);
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
@@ -27,11 +28,28 @@ export default function LoginForm({ onAuthenticated }: Props) {
       setMessage(error.message.includes('Email not confirmed')
         ? 'Debes confirmar tu email antes de continuar.'
         : error.message);
-    } else if (data.user) {
+      setLoading(false);
+      return;
+    }
+
+    if (data.user) {
       await syncProfile(supabase, data.user);
+
+      // Lee el rol desde profiles y lo deja disponible para el dashboard
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('role_code')
+        .eq('id', data.user.id)
+        .single();
+
+      if (prof?.role_code) {
+        try { sessionStorage.setItem('role_code', prof.role_code); } catch {}
+      }
+
       onAuthenticated?.(data.user.id);
       router.push('/dashboard');
     }
+
     setLoading(false);
   };
 
@@ -56,11 +74,8 @@ export default function LoginForm({ onAuthenticated }: Props) {
 
       {message && <p className="text-sm text-red-500">{message}</p>}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="h-11 rounded-md bg-blue-600 px-4 text-white disabled:opacity-50"
-      >
+      <button type="submit" disabled={loading}
+        className="h-11 rounded-md bg-blue-600 px-4 text-white disabled:opacity-50">
         {loading
           ? <span className="mx-auto block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
           : 'Iniciar sesión'}
