@@ -1,4 +1,4 @@
-// src/app/page.tsx
+
 export const metadata = {
   title: 'Inicio',
 };

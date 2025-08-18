@@ -1,4 +1,3 @@
-// src/app/ClientHome.tsx
 "use client";
 
 import Footer from '@/components/Footer';
@@ -8,7 +7,6 @@ import Nav from '@/components/Nav';
 import ReferAndWin from '@/components/ReferAndWin';
 import SectionInfo from '@/components/SectionInfo';
 import { Testimonials } from '@/components/Testimonials';
-import TopBar from '@/components/TopBar';
 
 export default function ClientHome() {
   return (
