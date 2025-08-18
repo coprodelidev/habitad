@@ -1,38 +1,60 @@
 'use client';
 
-import Link from 'next/link';
+import { useState } from 'react';
+import LoginForm from './LoginForm';
+import RegisterForm from './RegisterForm';
 
 type Props = {
-  className?: string; // para posicionarlo (absolute, margins, etc.)
+  className?: string;
+  onAuthenticated?: (userId: string) => void;
 };
 
-export default function HeroAuthBar({ className = '' }: Props) {
-  return (
-    <nav
-      aria-label="Acceso"
-      className={
-        `inline-flex items-center gap-1 rounded-full bg-white/95 p-1.5
-         shadow-[0_8px_20px_rgba(0,0,0,.1)] ring-1 ring-black/5
-         backdrop-blur supports-[backdrop-filter]:bg-white/85 ${className}`
-      }
-    >
-      <Link
-        href="/login"
-        className="inline-flex items-center rounded-full px-4 py-2 text-sm font-extrabold
-                   text-[#0b1324] hover:bg-black/5 focus-visible:outline-none
-                   focus-visible:ring-2 focus-visible:ring-[#0b1324]/40"
-      >
-        Iniciar sesión
-      </Link>
+export default function HeroAuthBar({ className = '', onAuthenticated }: Props) {
+  const [tab, setTab] = useState<'login' | 'register'>('login');
 
-      <Link
-        href="/register"
-        className="inline-flex items-center rounded-full px-4 py-2 text-sm font-extrabold
-                   text-[#0b1324] hover:bg-black/5 focus-visible:outline-none
-                   focus-visible:ring-2 focus-visible:ring-[#0b1324]/40"
-      >
-        Registrarse
-      </Link>
-    </nav>
+  return (
+    <div className={`w-full ${className}`}>
+      {/* Card alineada a la derecha, más compacta */}
+      <div className="ml-auto w-[min(92vw,560px)] rounded-2xl bg-white shadow-xl ring-1 ring-black/10">
+        {/* Tabs con subrayado */}
+        <div className="flex gap-8 px-5 pt-4 border-b">
+          <button
+            type="button"
+            onClick={() => setTab('login')}
+            className={`pb-3 -mb-px text-sm font-semibold
+                        ${tab === 'login'
+                          ? 'border-b-2 border-blue-600 text-slate-900'
+                          : 'border-b-2 border-transparent text-slate-500 hover:text-slate-700'}`}
+            aria-pressed={tab === 'login'}
+            aria-controls="auth-panel"
+          >
+            Iniciar sesión
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setTab('register')}
+            className={`pb-3 -mb-px text-sm font-semibold
+                        ${tab === 'register'
+                          ? 'border-b-2 border-blue-600 text-slate-900'
+                          : 'border-b-2 border-transparent text-slate-500 hover:text-slate-700'}`}
+            aria-pressed={tab === 'register'}
+            aria-controls="auth-panel"
+          >
+            Registrarse
+          </button>
+        </div>
+
+        {/* Contenido con scroll interno y padding */}
+        <div
+          id="auth-panel"
+          className="max-h-[64vh] overflow-y-auto px-5 py-4"
+        >
+          {tab === 'login'
+            ? <LoginForm onAuthenticated={onAuthenticated} />
+            : <RegisterForm />}
+        </div>
+      </div>
+    </div>
   );
 }

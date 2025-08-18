@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import HeroAuthBar from './auth/HeroAuthBar';
 
 export default function Hero() {
   const slides = ['/images/slider1.jpg', '/images/slider2.jpg', '/images/slider3.jpg'];
@@ -53,23 +54,9 @@ export default function Hero() {
                      shadow-[0_8px_20px_rgba(0,0,0,.1)] ring-1 ring-black/5
                      backdrop-blur supports-[backdrop-filter]:bg-white/85"
         >
-          <Link
-            href="/login"
-            className="inline-flex items-center rounded-full px-4 py-2 text-sm font-extrabold
-                       text-[#0b1324] hover:bg-black/5 focus-visible:outline-none
-                       focus-visible:ring-2 focus-visible:ring-[#0b1324]/40"
-          >
-            Iniciar sesión
-          </Link>
 
-          <Link
-            href="/register"
-            className="inline-flex items-center rounded-full px-4 py-2 text-sm font-extrabold
-                       text-[#0b1324] hover:bg-black/5 focus-visible:outline-none
-                       focus-visible:ring-2 focus-visible:ring-[#0b1324]/40"
-          >
-            Registrarse
-          </Link>
+          <HeroAuthBar />
+
         </nav>
       </div>
 
@@ -104,9 +91,8 @@ export default function Hero() {
               key={idx}
               onClick={() => setI(idx)}
               aria-label={`Ir al slide ${idx + 1}`}
-              className={`rounded-full transition-all ${
-                i === idx ? 'h-4 w-4 bg-white' : 'h-3 w-3 bg-white/60 hover:scale-110'
-              }`}
+              className={`rounded-full transition-all ${i === idx ? 'h-4 w-4 bg-white' : 'h-3 w-3 bg-white/60 hover:scale-110'
+                }`}
               type="button"
             />
           ))}
