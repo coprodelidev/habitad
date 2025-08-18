@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { syncProfile } from './syncProfile';
+import { syncProfile as syncUserProfile } from './syncProfile';
 
 interface Props { onAuthenticated?: (userId: string) => void; }
 interface FormValues { email: string; password: string; }
@@ -33,17 +33,16 @@ export default function LoginForm({ onAuthenticated }: Props) {
     }
 
     if (data.user) {
-      await syncProfile(supabase, data.user);
+      await syncUserProfile(supabase, data.user);
 
-      // Lee el rol desde profiles y lo deja disponible para el dashboard
       const { data: prof } = await supabase
         .from('profiles')
-        .select('role_code')
+        .select('role_id, roles ( code )')
         .eq('id', data.user.id)
         .single();
 
-      if (prof?.role_code) {
-        try { sessionStorage.setItem('role_code', prof.role_code); } catch {}
+      if (prof?.roles?.code) {
+        try { sessionStorage.setItem('role_code', prof.roles.code); } catch {}
       }
 
       onAuthenticated?.(data.user.id);

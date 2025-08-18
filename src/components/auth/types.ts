@@ -9,5 +9,5 @@ export interface Profile {
   last_name: string;
   second_last_name: string;
   country_code: string;
-  role_code: Role;
+  roles?: { code: string }; 
 }

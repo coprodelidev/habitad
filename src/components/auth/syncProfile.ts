@@ -3,7 +3,7 @@ import { SupabaseClient, User } from '@supabase/supabase-js';
 export async function syncProfile(client: SupabaseClient, user: User) {
   const { data, error } = await client
     .from('profiles')
-    .select('phone, phone_prefix, first_name, second_name, last_name, second_last_name, country_code, role_code')
+    .select('phone, phone_prefix, first_name, second_name, last_name, second_last_name, country_code, role_id')
     .eq('id', user.id)
     .single();
 
@@ -19,7 +19,15 @@ export async function syncProfile(client: SupabaseClient, user: User) {
   if (!data.last_name && meta.last_name) updates.last_name = meta.last_name;
   if (!data.second_last_name && meta.second_last_name) updates.second_last_name = meta.second_last_name;
   if (!data.country_code && meta.country_code) updates.country_code = meta.country_code;
-  if (!data.role_code && meta.role) updates.role_code = meta.role;
+
+  if (!data.role_id && meta.role) {
+    const { data: roleRow } = await client
+      .from('roles')
+      .select('id')
+      .eq('code', meta.role)
+      .single();
+    if (roleRow) updates.role_id = roleRow.id;
+  }
 
   if (Object.keys(updates).length > 0) {
     await client.from('profiles').update(updates).eq('id', user.id);
