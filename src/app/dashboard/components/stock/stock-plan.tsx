@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 type Cuh = {
+  id: string;
   etapa: number;
   codigo_cuh: string;
   modelo: string;
@@ -13,9 +14,23 @@ type Cuh = {
   partida: string;
   manzana: number;
   lote: number;
-  ubicacion: string | null;     // "ESQUINA", etc.
-  area_lote: number | null;     // m²
+  ubicacion: string | null;
+  area_lote: number | null;
   precio_promotor: number | null;
+};
+
+type Cliente = {
+  id: string;
+  country_code: string;
+  phone_number: string;
+  email: string;
+  primer_nombre: string;
+  segundo_nombre: string | null;
+  primer_apellido: string;
+  segundo_apellido: string | null;
+  full_phone: string | null;
+  created_at: string;
+  tipo: 'cliente' | 'interesado' | string;
 };
 
 type EtapaGroup = { etapa: number; manzanas: ManzanaGroup[] };
@@ -23,33 +38,26 @@ type ManzanaGroup = { manzana: number; rows: Cuh[]; minArea: number; maxArea: nu
 
 export default function StockPlan() {
   const [data, setData] = useState<Cuh[]>([]);
+  const [clients, setClients] = useState<Cliente[]>([]);
   const [etapaOpen, setEtapaOpen] = useState<Set<number>>(new Set());
   const [selected, setSelected] = useState<Cuh | null>(null);
 
-  // Carga datos (sin .returns<T>() para evitar TS2347)
   useEffect(() => {
-    (async () => {
-      try {
-        const client = supabase as unknown as SupabaseClient;
-        const { data, error } = await client
-          .from('cuh')
-          .select('*')
-          .order('etapa', { ascending: true })
-          .order('manzana', { ascending: true })
-          .order('lote', { ascending: true });
-
-        if (error) {
-          console.error(error);
-          return;
-        }
-        setData(((data ?? []) as unknown) as Cuh[]);
-      } catch (e) {
-        console.error(e);
-      }
-    })();
+    const client = supabase as unknown as SupabaseClient;
+    client
+      .from('cuh')
+      .select('*')
+      .then(({ data, error }: { data: Cuh[] | null; error: any }) => {
+        if (!error && data) setData(data);
+      });
+    client
+      .from('clientes')
+      .select('*')
+      .then(({ data, error }: { data: Cliente[] | null; error: any }) => {
+        if (!error && data) setClients(data);
+      });
   }, []);
 
-  // Agrupa por etapa y luego por manzana con métricas de área
   const grupos = useMemo<EtapaGroup[]>(() => {
     const byEtapa = new Map<number, Cuh[]>();
     for (const r of data) {
@@ -68,9 +76,7 @@ export default function StockPlan() {
       const manzanas: ManzanaGroup[] = Array.from(byMZ.entries())
         .sort((a, b) => a[0] - b[0])
         .map(([manzana, mzRows]) => {
-          const numericAreas = mzRows
-            .map(x => (x.area_lote ?? 0))
-            .filter((n) => Number.isFinite(n));
+          const numericAreas = mzRows.map(x => (x.area_lote ?? 0)).filter((n) => Number.isFinite(n));
           const minArea = numericAreas.length ? Math.min(...numericAreas) : 0;
           const maxArea = numericAreas.length ? Math.max(...numericAreas) : 0;
           const rowsSorted = [...mzRows].sort((a, b) => a.lote - b.lote);
@@ -81,7 +87,6 @@ export default function StockPlan() {
     return result;
   }, [data]);
 
-  // Abrir/cerrar etapa
   function toggleEtapa(et: number) {
     setEtapaOpen(prev => {
       const n = new Set(prev);
@@ -100,7 +105,6 @@ export default function StockPlan() {
 
       <Legend />
 
-      {/* Etapas */}
       <div className="space-y-4">
         {grupos.map((g) => (
           <section key={g.etapa} className="rounded-lg border bg-white shadow-sm">
@@ -119,7 +123,6 @@ export default function StockPlan() {
             </button>
 
             <div className={etapaOpen.has(g.etapa) ? 'block' : 'hidden'}>
-              {/* Manzanas */}
               <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
                 {g.manzanas.map((mz) => (
                   <ManzanaBlock key={`${g.etapa}-${mz.manzana}`} grupo={mz} onSelect={setSelected} />
@@ -130,30 +133,22 @@ export default function StockPlan() {
         ))}
       </div>
 
-      {/* Modal de ficha */}
       {selected && (
         <FichaModal
           imgSrc="/images/slider2.jpg"
           cuh={selected}
+          clients={clients}
           onClose={() => setSelected(null)}
-          onSelect={() => {
-            console.log('[Seleccionar CUH]', selected);
-            setSelected(null);
-          }}
         />
       )}
     </div>
   );
 }
 
-/* ─────────────────────── UI: Bloque de Manzana ─────────────────────── */
-
 function ManzanaBlock({ grupo, onSelect }: { grupo: ManzanaGroup; onSelect: (r: Cuh) => void }) {
   const { manzana, rows, minArea, maxArea } = grupo;
-
-  // Grid denso: cada “unidad” mide 80x80 y escalamos por spans 2/3/4
   const base = 80;
-  const cols = 12; // layout ancho para packing bonito
+  const cols = 12;
 
   return (
     <div className="rounded-lg border p-3">
@@ -214,19 +209,35 @@ function ManzanaBlock({ grupo, onSelect }: { grupo: ManzanaGroup; onSelect: (r: 
   );
 }
 
-/* ─────────────────────── Modal de Ficha ─────────────────────── */
-
 function FichaModal({
   imgSrc,
   cuh,
+  clients,
   onClose,
-  onSelect,
 }: {
   imgSrc: string;
   cuh: Cuh;
+  clients: Cliente[];
   onClose: () => void;
-  onSelect: () => void;
 }) {
+  const [mode, setMode] = useState<'details' | 'select'>('details');
+  const [search, setSearch] = useState('');
+  const filtered = clients.filter(c => {
+    const text = `${c.primer_nombre} ${c.primer_apellido} ${c.email} ${c.full_phone ?? ''}`.toLowerCase();
+    return text.includes(search.toLowerCase());
+  });
+
+  async function handleLink(client: Cliente) {
+    const payload = {
+      promotor_id: 'bd693628-4a47-4176-8689-8f8ced52d469',
+      cliente_id: client.id,
+      cuh_id: cuh.id,
+      estado: 'reservado',
+    };
+    await (supabase.from('reservas') as any).insert(payload);
+    onClose();
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
       <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-xl">
@@ -235,36 +246,71 @@ function FichaModal({
             <Image src={imgSrc} alt="Propiedad" fill className="object-cover" priority />
           </div>
           <div className="flex flex-col p-4">
-            <div className="mb-1 text-xs text-gray-500">Etapa {cuh.etapa}</div>
-            <h3 className="text-lg font-semibold">
-              {cuh.codigo_cuh} · {cuh.modelo}
-            </h3>
-            <div className="mt-1 text-sm text-gray-700">
-              MZ {cuh.manzana} · LT {cuh.lote} {cuh.ubicacion ? `· ${cuh.ubicacion}` : ''}
-            </div>
-            <div className="mt-3 text-xl font-bold">{money(cuh.precio_cuh)}</div>
+            {mode === 'details' ? (
+              <>
+                <div className="mb-1 text-xs text-gray-500">Etapa {cuh.etapa}</div>
+                <h3 className="text-lg font-semibold">
+                  {cuh.codigo_cuh} · {cuh.modelo}
+                </h3>
+                <div className="mt-1 text-sm text-gray-700">
+                  MZ {cuh.manzana} · LT {cuh.lote} {cuh.ubicacion ? `· ${cuh.ubicacion}` : ''}
+                </div>
+                <div className="mt-3 text-xl font-bold">{money(cuh.precio_cuh)}</div>
 
-            <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-              <Info label="Partida" value={cuh.partida} mono />
-              <Info label="Área (m²)" value={cuh.area_lote ?? '—'} />
-              <Info label="Precio promotor" value={cuh.precio_promotor != null ? money(cuh.precio_promotor) : '—'} />
-              <Info label="Ubicación" value={cuh.ubicacion ?? '—'} />
-            </div>
+                <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+                  <Info label="Partida" value={cuh.partida} mono />
+                  <Info label="Área (m²)" value={cuh.area_lote ?? '—'} />
+                  <Info label="Precio promotor" value={cuh.precio_promotor != null ? money(cuh.precio_promotor) : '—'} />
+                  <Info label="Ubicación" value={cuh.ubicacion ?? '—'} />
+                </div>
 
-            <div className="mt-auto flex items-center justify-end gap-2 pt-5">
-              <button
-                onClick={onClose}
-                className="rounded-md border px-4 py-2 text-sm hover:bg-gray-50"
-              >
-                Cerrar
-              </button>
-              <button
-                onClick={onSelect}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-              >
-                Seleccionar
-              </button>
-            </div>
+                <div className="mt-auto flex items-center justify-end gap-2 pt-5">
+                  <button
+                    onClick={onClose}
+                    className="rounded-md border px-4 py-2 text-sm hover:bg-gray-50"
+                  >
+                    Cerrar
+                  </button>
+                  <button
+                    onClick={() => setMode('select')}
+                    className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                  >
+                    Separar
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold">Seleccionar Cliente</h3>
+                <input
+                  className="mt-2 border px-3 py-2 rounded-lg"
+                  placeholder="Buscar cliente..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <div className="mt-3 overflow-y-auto max-h-60">
+                  {filtered.map(c => (
+                    <div key={c.id} className="flex justify-between items-center border-b py-2">
+                      <span>{c.primer_nombre} {c.primer_apellido} ({c.email})</span>
+                      <button
+                        onClick={() => handleLink(c)}
+                        className="bg-green-600 text-white px-3 py-1 rounded"
+                      >
+                        Seleccionar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-auto flex justify-end pt-5">
+                  <button
+                    onClick={() => setMode('details')}
+                    className="rounded-md border px-4 py-2 text-sm hover:bg-gray-50"
+                  >
+                    Volver
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -280,8 +326,6 @@ function Info({ label, value, mono = false }: { label: string; value: React.Reac
     </div>
   );
 }
-
-/* ─────────────────────── Leyenda ─────────────────────── */
 
 function Legend() {
   const samples = ['ACACIA', 'SAUCE', 'OTRO'];
@@ -307,8 +351,6 @@ function Legend() {
   );
 }
 
-/* ─────────────────────── Helpers ─────────────────────── */
-
 function isCorner(r: Cuh): boolean {
   return (r.ubicacion ?? '').toUpperCase().includes('ESQUINA');
 }
@@ -317,7 +359,6 @@ function money(n: number): string {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// Color/estilo por modelo (ajusta a tus modelos reales)
 function modelStyle(modelo: string): { card: string; badge: string } {
   const m = modelo.toUpperCase();
   if (m.includes('ACACIA')) {
@@ -326,27 +367,21 @@ function modelStyle(modelo: string): { card: string; badge: string } {
   if (m.includes('SAUCE')) {
     return { card: 'border-sky-200 bg-sky-50', badge: 'bg-sky-100 text-sky-800' };
   }
-  // fallback
   return { card: 'border-gray-200 bg-gray-50', badge: 'bg-gray-100 text-gray-800' };
 }
 
-/**
- * Mapea área a spans (2,3,4). Si todas las áreas son iguales, usa tamaño medio.
- * Hacemos el grid "dense" para encajar bloques grandes y pequeños.
- */
 function spanFromArea(
   area: number | null,
   minArea: number,
   maxArea: number,
   gridCols: number
 ): { colSpan: number; rowSpan: number } {
-  // Defaults si no hay datos de área
   if (area == null || !Number.isFinite(area) || maxArea <= minArea) {
     const span = 3;
     return clampSpan(span, span, gridCols);
   }
 
-  const rel = (area - minArea) / (maxArea - minArea); // 0..1
+  const rel = (area - minArea) / (maxArea - minArea);
   let span: 2 | 3 | 4;
   if (rel < 0.33) span = 2;
   else if (rel < 0.66) span = 3;
@@ -356,7 +391,7 @@ function spanFromArea(
 }
 
 function clampSpan(col: number, row: number, gridCols: number): { colSpan: number; rowSpan: number } {
-  const colSpan = Math.max(2, Math.min(col, Math.max(2, gridCols))); // al menos 2 para que se vea
+  const colSpan = Math.max(2, Math.min(col, Math.max(2, gridCols)));
   const rowSpan = Math.max(2, row);
   return { colSpan, rowSpan };
 }
