@@ -31,14 +31,16 @@ export default function Menu() {
       <Link key="inicio" href="/dashboard" className="text-white hover:text-blue-300 transition-colors duration-200">Inicio</Link>,
       <Link key="cuh" href="/dashboard/components/catalogo" className="text-white hover:text-blue-300 transition-colors duration-200">CUH</Link>,
       <Link key="stock" href="/dashboard/components/stock" className="text-white hover:text-blue-300 transition-colors duration-200">Propiedades</Link>,
-      <Link key="clients" href="/dashboard/components/clientes" className="text-white hover:text-blue-300 transition-colors duration-200">Registro</Link>
+      <Link key="clients" href="/dashboard/components/clientes" className="text-white hover:text-blue-300 transition-colors duration-200">Registro</Link>,
+      <Link key="Pagos" href="/dashboard/components/gestion-pagos" className="text-white hover:text-blue-300 transition-colors duration-200">Gestión de pagos</Link>,
     );
   } else if (roleId === 'bd693628-4a47-4176-8689-8f8ced52d469') {
     // Promotor: ve solo Stock y Clientes
     console.log("✅ Mostrando menú de promotor");
     menuItems.push(
       <Link key="stock" href="/dashboard/components/stock" className="text-white hover:text-blue-300 transition-colors duration-200">Stock</Link>,
-      <Link key="clients" href="/dashboard/components/clientes" className="text-white hover:text-blue-300 transition-colors duration-200">Clientes</Link>
+      <Link key="clients" href="/dashboard/components/clientes" className="text-white hover:text-blue-300 transition-colors duration-200">Clientes</Link>,
+      <Link key="Pagos" href="/dashboard/components/gestion-pagos" className="text-white hover:text-blue-300 transition-colors duration-200">Gestión de pagos</Link>,
     );
   } else if (roleId === '883ed691-dbc7-448f-9635-18f6c1a6db5e') {
     // Asistente: ve solo CUH
