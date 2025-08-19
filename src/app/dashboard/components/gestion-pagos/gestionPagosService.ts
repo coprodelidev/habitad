@@ -11,11 +11,11 @@ export type Cliente = {
   segundo_apellido: string | null;
   documento_identidad: string | null;
   tipo_documento: string | null;
-  country_code: string;             // ej: +34
-  phone_number: string;             // sin prefijo
-  full_phone: string | null;        // generado (puede venir null según tu definición)
-  email: string;                    // tipo user-defined, lo tratamos como string
-  tipo: string;                     // cliente | interesado
+  country_code: string;
+  phone_number: string;
+  full_phone: string | null;
+  email: string;     // user-defined en BD => usar string
+  tipo: string;      // cliente | interesado
   created_at: string;
 };
 
@@ -43,16 +43,14 @@ export type Reserva = {
   estado: string;
   created_at: string | null;
   updated_at: string | null;
-  // Opcionales si luego los agregas:
-  inicial_objetivo?: number | null;
-  inicial_pagado?: number | null;
+  // (ya no usamos inicial_objetivo aquí)
 };
 
 export type GestionPagoRow = {
   reserva: Reserva;
   cliente: Cliente;
   propiedad: Propiedad;
-  cliente_doc: string; // lo que mostraremos en “Documento identidad”
+  cliente_doc: string;
 };
 
 export type DocRegistro = {
@@ -71,11 +69,11 @@ export type PagoInicial = {
   created_at: string;
 };
 
-// Buckets Storage
+// Buckets
 const BUCKET_DOCS = "client-docs";
 const BUCKET_PAYMENTS = "payments";
 
-// Helpers compat v1/v2 + TS flexible
+// Helpers
 const storage = (supabase as any).storage;
 
 async function must<T>(p: Promise<{ data?: T; error?: any }>): Promise<T> {
@@ -86,7 +84,6 @@ async function must<T>(p: Promise<{ data?: T; error?: any }>): Promise<T> {
 
 // ===== Lecturas base =====
 export async function listGestiones(): Promise<GestionPagoRow[]> {
-  // 1) Reservas
   const reservas = await must<any[]>(
     (supabase as any)
       .from("reservas")
@@ -102,7 +99,6 @@ export async function listGestiones(): Promise<GestionPagoRow[]> {
     ]);
     if (!cliente || !propiedad) continue;
 
-    // Documento identidad en tabla: prioriza documento_identidad; si no, full_phone; luego email; si todo falla, id
     const cliente_doc =
       cliente.documento_identidad ||
       cliente.full_phone ||
@@ -267,12 +263,17 @@ export async function getSignedUrlFromPayments(path: string, expiresInSeconds = 
   return data.signedUrl;
 }
 
+/** ✅ CORREGIDO: “Objetivo” = precio_promotor de la propiedad vinculada a la reserva */
 export async function getResumenCuotaInicial(reserva: Reserva): Promise<{
   pagado: number; objetivo: number; restante: number; cuotas: PagoInicial[];
 }> {
   const cuotas = await listCuotas(reserva.id);
-  const pagado = cuotas.reduce((acc, c) => acc + (c.amount || 0), 0);
-  const objetivo = Number(reserva.inicial_objetivo || 0);
+  const pagado = cuotas.reduce((acc, c) => acc + (Number(c.amount) || 0), 0);
+
+  // Tomar el precio_promotor desde CUH (propiedad de la reserva)
+  const propiedad = await getPropiedadById(reserva.cuh_id);
+  const objetivo = Number(propiedad?.precio_promotor ?? 0); // si es null, 0
+
   const restante = Math.max(0, objetivo - pagado);
   return { pagado, objetivo, restante, cuotas };
 }
