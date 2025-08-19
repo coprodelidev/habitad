@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { fetchClientesPage, insertCliente } from "./clientesServices";
 
 type Cliente = {
   id: string;
@@ -15,6 +15,8 @@ type Cliente = {
   full_phone: string | null;
   created_at: string;
   tipo: "cliente" | "interesado" | string;
+  documento_identidad: string | null;
+  tipo_documento: string | null;
 };
 
 const PAGE_SIZE = 10;
@@ -41,6 +43,7 @@ export default function Clientes() {
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
   const [countryCode, setCountryCode] = useState("+34");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -49,6 +52,8 @@ export default function Clientes() {
   const [segundoNombre, setSegundoNombre] = useState("");
   const [primerApellido, setPrimerApellido] = useState("");
   const [segundoApellido, setSegundoApellido] = useState("");
+  const [documentoIdentidad, setDocumentoIdentidad] = useState("");
+  const [tipoDocumento, setTipoDocumento] = useState("");
   const [tipo, setTipo] = useState<"cliente" | "interesado">("interesado");
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -65,22 +70,7 @@ export default function Clientes() {
     setLoading(true);
     setError(null);
     try {
-      let query = supabase
-        .from("clientes")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .range(from, toPlusOne);
-
-      if (whereFilter) {
-        query = query.or(
-          `email.ilike.%${whereFilter}%,phone_number.ilike.%${whereFilter}%,full_phone.ilike.%${whereFilter}%`
-        );
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      const list = (data as Cliente[]) ?? [];
+      const list = await fetchClientesPage(from, toPlusOne, whereFilter);
       setHasMore(list.length > PAGE_SIZE);
       setRows(list.slice(0, PAGE_SIZE));
     } catch (e: any) {
@@ -115,25 +105,27 @@ export default function Clientes() {
       segundo_nombre: (segundoNombre || "").trim() || null,
       primer_apellido: primerApellido.trim(),
       segundo_apellido: (segundoApellido || "").trim() || null,
+      documento_identidad: (documentoIdentidad || "").trim() || null,
+      tipo_documento: (tipoDocumento || "").trim() || null,
       tipo,
     };
 
     setSubmitting(true);
     try {
-      const { error } = await (supabase
-        .from("clientes") as any)
-        .insert(payload as any);
-
-      if (error) throw error;
+      await insertCliente(payload);
 
       setSuccessMsg("Cliente registrado correctamente.");
+      setCountryCode("+34");
       setPhoneNumber("");
       setEmail("");
       setPrimerNombre("");
       setSegundoNombre("");
       setPrimerApellido("");
       setSegundoApellido("");
+      setDocumentoIdentidad("");
+      setTipoDocumento("");
       setTipo("interesado");
+      setShowForm(false);
 
       setPage(0);
       await fetchPage();
@@ -156,44 +148,58 @@ export default function Clientes() {
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <h2 className="text-lg font-semibold">Registrar cliente</h2>
-
-        <form onSubmit={handleSubmit} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <input placeholder="+34" value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="border px-3 py-2 rounded-lg" />
-          <input placeholder="612345678" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="border px-3 py-2 rounded-lg" />
-          <input placeholder="persona@correo.com" value={email} onChange={(e) => setEmail(e.target.value)} type="email" className="border px-3 py-2 rounded-lg" />
-          <input placeholder="Primer nombre" value={primerNombre} onChange={(e) => setPrimerNombre(e.target.value)} className="border px-3 py-2 rounded-lg" />
-          <input placeholder="Segundo nombre" value={segundoNombre} onChange={(e) => setSegundoNombre(e.target.value)} className="border px-3 py-2 rounded-lg" />
-          <input placeholder="Primer apellido" value={primerApellido} onChange={(e) => setPrimerApellido(e.target.value)} className="border px-3 py-2 rounded-lg" />
-          <input placeholder="Segundo apellido" value={segundoApellido} onChange={(e) => setSegundoApellido(e.target.value)} className="border px-3 py-2 rounded-lg" />
-          <select value={tipo} onChange={(e) => setTipo(e.target.value as "cliente" | "interesado")} className="border px-3 py-2 rounded-lg">
-            <option value="interesado">interesado</option>
-            <option value="cliente">cliente</option>
-          </select>
-
-          <div className="col-span-3 flex gap-2 items-center mt-2">
-            <button type="submit" disabled={submitting} className="bg-black text-white px-4 py-2 rounded-lg disabled:opacity-50">
-              {submitting ? "Guardando…" : "Guardar"}
-            </button>
-            {successMsg && <span className="text-green-600 text-sm">{successMsg}</span>}
-            {error && <span className="text-red-600 text-sm">{error}</span>}
-          </div>
-        </form>
-      </div>
-
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Clientes registrados</h2>
-          <input
-            className="border px-3 py-2 rounded-lg"
-            placeholder="Buscar por email o teléfono…"
-            value={search}
-            onChange={(e) => {
-              setPage(0);
-              setSearch(e.target.value);
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <input
+              className="border px-3 py-2 rounded-lg"
+              placeholder="Buscar por email o teléfono…"
+              value={search}
+              onChange={(e) => {
+                setPage(0);
+                setSearch(e.target.value);
+              }}
+            />
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="bg-black text-white px-4 py-2 rounded-lg"
+            >
+              {showForm ? "Ocultar formulario" : "Registrar cliente"}
+            </button>
+          </div>
         </div>
+
+        {showForm && (
+          <form onSubmit={handleSubmit} className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <input placeholder="+34" value={countryCode} onChange={(e) => setCountryCode(e.target.value)} className="border px-3 py-2 rounded-lg" />
+            <input placeholder="612345678" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="border px-3 py-2 rounded-lg" />
+            <input placeholder="persona@correo.com" value={email} onChange={(e) => setEmail(e.target.value)} type="email" className="border px-3 py-2 rounded-lg" />
+            <input placeholder="Primer nombre" value={primerNombre} onChange={(e) => setPrimerNombre(e.target.value)} className="border px-3 py-2 rounded-lg" />
+            <input placeholder="Segundo nombre" value={segundoNombre} onChange={(e) => setSegundoNombre(e.target.value)} className="border px-3 py-2 rounded-lg" />
+            <input placeholder="Primer apellido" value={primerApellido} onChange={(e) => setPrimerApellido(e.target.value)} className="border px-3 py-2 rounded-lg" />
+            <input placeholder="Segundo apellido" value={segundoApellido} onChange={(e) => setSegundoApellido(e.target.value)} className="border px-3 py-2 rounded-lg" />
+            <select value={tipoDocumento} onChange={(e) => setTipoDocumento(e.target.value)} className="border px-3 py-2 rounded-lg">
+              <option value="">Seleccione tipo de documento</option>
+              <option value="DNI">DNI</option>
+              <option value="Pasaporte">Pasaporte</option>
+              <option value="Tarjeta de residencia">Tarjeta de residencia</option>
+              <option value="Cédula">Cédula</option>
+            </select>
+            <input placeholder="Documento de identidad" value={documentoIdentidad} onChange={(e) => setDocumentoIdentidad(e.target.value)} className="border px-3 py-2 rounded-lg" />
+            <select value={tipo} onChange={(e) => setTipo(e.target.value as "cliente" | "interesado")} className="border px-3 py-2 rounded-lg">
+              <option value="interesado">interesado</option>
+              <option value="cliente">cliente</option>
+            </select>
+
+            <div className="col-span-3 flex gap-2 items-center mt-2">
+              <button type="submit" disabled={submitting} className="bg-black text-white px-4 py-2 rounded-lg disabled:opacity-50">
+                {submitting ? "Guardando…" : "Guardar"}
+              </button>
+              {successMsg && <span className="text-green-600 text-sm">{successMsg}</span>}
+              {error && <span className="text-red-600 text-sm">{error}</span>}
+            </div>
+          </form>
+        )}
 
         <div className="mt-3 overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -205,13 +211,15 @@ export default function Clientes() {
                 <th className="py-2 pr-3">Apellidos</th>
                 <th className="py-2 pr-3">Email</th>
                 <th className="py-2 pr-3">Teléfono</th>
+                <th className="py-2 pr-3">Tipo Documento</th>
+                <th className="py-2 pr-3">Documento</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6}>Cargando…</td></tr>
+                <tr><td colSpan={8}>Cargando…</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td colSpan={6}>Sin resultados.</td></tr>
+                <tr><td colSpan={8}>Sin resultados.</td></tr>
               ) : (
                 rows.map((c) => (
                   <tr key={c.id} className="border-t">
@@ -221,6 +229,8 @@ export default function Clientes() {
                     <td className="py-2 pr-3">{c.primer_apellido} {c.segundo_apellido ?? ""}</td>
                     <td className="py-2 pr-3">{c.email}</td>
                     <td className="py-2 pr-3">{c.full_phone ?? `${c.country_code}${c.phone_number}`}</td>
+                    <td className="py-2 pr-3">{c.tipo_documento ?? ""}</td>
+                    <td className="py-2 pr-3">{c.documento_identidad ?? ""}</td>
                   </tr>
                 ))
               )}
