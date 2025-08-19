@@ -5,6 +5,8 @@ declare module '@supabase/supabase-js' {
   }
   export interface SupabaseClient {
     auth: {
+      signOut(): unknown;
+      getUser(): { data: { user: any; }; error: any; } | PromiseLike<{ data: { user: any; }; error: any; }>;
       signInWithPassword(opts: { email: string; password: string }): Promise<{ data: { user: User | null }; error: Error | null }>;
       signUp(opts: { email: string; password: string; options: { data: Record<string, any> } }): Promise<{ data: any; error: Error | null }>;
     };

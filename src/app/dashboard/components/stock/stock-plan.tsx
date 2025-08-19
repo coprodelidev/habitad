@@ -615,7 +615,7 @@ function FichaModal({
                     ].join(' ')}
                     title={isSeparada ? 'Ya separada' : 'Separar'}
                   >
-                    Separar
+                    RESERVAR
                   </button>
                 </div>
               </>

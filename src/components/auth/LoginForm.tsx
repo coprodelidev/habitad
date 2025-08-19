@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { syncProfile as syncUserProfile } from './syncProfile';
+import { useUser } from '@/contexts/UserContext';
 
 interface Props { onAuthenticated?: (userId: string) => void; }
 interface FormValues { email: string; password: string; }
@@ -14,15 +15,20 @@ export default function LoginForm({ onAuthenticated }: Props) {
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const { refreshProfile } = useUser();
 
   const onSubmit = async (values: FormValues) => {
     setMessage(null);
     setLoading(true);
 
+    console.log("🔐 Iniciando login con:", values.email);
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
     });
+
+    console.log("📡 Respuesta de signInWithPassword:", { data, error });
 
     if (error) {
       setMessage(error.message.includes('Email not confirmed')
@@ -33,19 +39,32 @@ export default function LoginForm({ onAuthenticated }: Props) {
     }
 
     if (data.user) {
+      console.log("👤 Sincronizando perfil para usuario:", data.user.id);
       await syncUserProfile(supabase, data.user);
 
-      const { data: prof } = await supabase
+      const { data: prof, error: profError } = await supabase
         .from('profiles')
         .select('role_id, roles ( code )')
         .eq('id', data.user.id)
         .single();
 
-      if (prof?.roles?.code) {
-        try { sessionStorage.setItem('role_code', prof.roles.code); } catch {}
+      console.log("📊 Perfil obtenido:", { prof, profError });
+
+      if (profError) {
+        console.error("🚨 Error al obtener perfil:", profError.message);
+      } else if (prof?.roles?.code) {
+        try {
+          sessionStorage.setItem('role_code', prof.roles.code);
+          console.log("✅ Role code guardado en sessionStorage:", prof.roles.code);
+        } catch {
+          console.error("🚨 Error al guardar role_code en sessionStorage");
+        }
       }
 
       onAuthenticated?.(data.user.id);
+      console.log("🔄 Forzando actualización de UserContext");
+      await refreshProfile(); // Forzar recarga del perfil
+      console.log("➡️ Redirigiendo a /dashboard");
       router.push('/dashboard');
     }
 
@@ -60,6 +79,7 @@ export default function LoginForm({ onAuthenticated }: Props) {
       <div className="space-y-1">
         <label className="text-xs font-medium text-slate-700">Correo</label>
         <input type="email" disabled={loading} className={cls}
+               autoComplete="email"
                {...register('email', { required: 'Email requerido' })} />
         {errors.email && <p className="text-sm text-red-500">{errors.email.message}</p>}
       </div>
@@ -67,6 +87,7 @@ export default function LoginForm({ onAuthenticated }: Props) {
       <div className="space-y-1">
         <label className="text-xs font-medium text-slate-700">Contraseña</label>
         <input type="password" disabled={loading} className={cls}
+               autoComplete="current-password"
                {...register('password', { required: 'Contraseña requerida' })} />
         {errors.password && <p className="text-sm text-red-500">{errors.password.message}</p>}
       </div>
