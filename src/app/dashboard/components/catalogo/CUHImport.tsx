@@ -3,8 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
-import { supabase } from '@/lib/supabaseClient';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { upsertCuh } from './cuhServices';
 
 type CuhRow = {
   etapa: number;
@@ -21,27 +20,11 @@ type CuhRow = {
 
 type PreviewRow = CuhRow & { _row?: number; _errors?: string[] };
 
-const REQUIRED: (keyof CuhRow)[] = [
-  'etapa',
-  'codigo_cuh',
-  'modelo',
-  'precio_cuh',
-  'partida',
-  'manzana',
-  'lote',
-];
-
-const WANTED = [
-  ...REQUIRED,
-  'ubicacion',
-  'area_lote',
-  'precio_promotor',
-] as (keyof CuhRow)[];
+const REQUIRED: (keyof CuhRow)[] = ['etapa', 'codigo_cuh', 'modelo', 'precio_cuh', 'partida', 'manzana', 'lote'];
+const WANTED = [...REQUIRED, 'ubicacion', 'area_lote', 'precio_promotor'] as (keyof CuhRow)[];
 
 // ========================= utils =========================
 
-// Normaliza texto: quita acentos/símbolos, colapsa espacios
-// y elimina prefijos numéricos ("21 ETAPA" -> "etapa").
 function norm(s: any): string {
   if (s == null) return '';
   let t = String(s)
@@ -50,20 +33,16 @@ function norm(s: any): string {
     .replace(/[^\w\s.\-]/g, ' ')
     .toLowerCase()
     .trim();
-  t = t.replace(/^\d+\s+/, ''); // "21 etapa" -> "etapa"
+  t = t.replace(/^\d+\s+/, '');
   t = t.replace(/\s+/g, ' ');
   return t;
 }
 
-// Construye el mapa de encabezados -> claves internas
 function buildHeaderMap(headerRow: any[]): Record<number, keyof CuhRow> {
   const map: Record<number, keyof CuhRow> = {};
-
   headerRow.forEach((h, i) => {
     const n = norm(h);
-
     if (!n || n === 'cf' || n.includes('no tocar')) return;
-
     if (n.includes('etapa')) map[i] = 'etapa';
     else if ((n.includes('codigo') && n.includes('cuh')) || n === 'cuh' || n === 'codigo cuh' || n === 'codigo')
       map[i] = 'codigo_cuh';
@@ -84,11 +63,9 @@ function buildHeaderMap(headerRow: any[]): Record<number, keyof CuhRow> {
     else if (n.includes('precio') && n.includes('promotor'))
       map[i] = 'precio_promotor';
   });
-
   return map;
 }
 
-// Detecta si una fila es “basura”: CF, números, vacíos, “NO TOCAR”
 function isJunkRow(cells: any[]): boolean {
   const tokens = cells.map(norm).filter(Boolean);
   if (!tokens.length) return true;
@@ -98,48 +75,32 @@ function isJunkRow(cells: any[]): boolean {
   return allCF || anyNoTocar || looksIdOnly;
 }
 
-// Encuentra índice de fila de encabezados en la matriz
 function findHeaderIndex(matrix: any[][]): { idx: number; map: Record<number, keyof CuhRow> } | null {
   for (let i = 0; i < matrix.length; i++) {
     const row = matrix[i];
     if (!row || isJunkRow(row)) continue;
-
     const map = buildHeaderMap(row);
     const found = Object.values(map);
-
-    // exigimos que al menos estén "codigo_cuh" y "precio_cuh" y otros 2
-    const ok =
-      found.includes('codigo_cuh') &&
-      found.includes('precio_cuh') &&
-      found.length >= 4;
-
+    const ok = found.includes('codigo_cuh') && found.includes('precio_cuh') && found.length >= 4;
     if (ok) return { idx: i, map };
   }
   return null;
 }
 
-// Monedas robustas: acepta "80,640.00", "80.640,00", "80640", etc.
 function parseMoney(v: any): number | null {
   if (v == null || v === '') return null;
   if (typeof v === 'number') return isFinite(v) ? v : null;
-  let s = String(v).trim();
-  if (!s) return null;
-  // fuera símbolo moneda y espacios
-  s = s.replace(/[^\d,.\-]/g, '');
-
+  let s = String(v).trim().replace(/[^\d,.\-]/g, '');
   const lastComma = s.lastIndexOf(',');
   const lastDot = s.lastIndexOf('.');
   let dec = '.';
   if (lastComma > -1 && lastDot > -1) dec = lastComma > lastDot ? ',' : '.';
   else if (lastComma > -1) dec = ',';
-
   if (dec === ',') {
-    s = s.replace(/\./g, ''); // miles
-    s = s.replace(',', '.');  // decimal
+    s = s.replace(/\./g, '').replace(',', '.');
   } else {
-    s = s.replace(/,/g, '');  // miles
+    s = s.replace(/,/g, '');
   }
-
   const n = parseFloat(s);
   return isNaN(n) ? null : n;
 }
@@ -163,8 +124,7 @@ function isValidRow(r: PreviewRow): boolean {
 function safeText(v: any): string {
   if (v == null) return '';
   const s = String(v).trim();
-  if (!s) return '';
-  if (s.toLowerCase() === 'cf' || s.toLowerCase().includes('no tocar')) return '';
+  if (!s || s.toLowerCase() === 'cf' || s.toLowerCase().includes('no tocar')) return '';
   return s;
 }
 
@@ -175,7 +135,7 @@ export default function CUHImport() {
   const [rows, setRows] = useState<PreviewRow[]>([]);
   const [badRows, setBadRows] = useState<PreviewRow[]>([]);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const hasData = rows.length > 0 || badRows.length > 0;
 
@@ -185,9 +145,8 @@ export default function CUHImport() {
     setBadRows([]);
     setFileName(file.name);
 
-    // Caso clásico: subiste el archivo temporal de Excel (~$)
     if (file.name.startsWith('~$')) {
-      setMessage('Ese es el archivo temporal de Excel. Cierra el Excel y sube el original (sin "~$").');
+      setMessage({ text: 'Archivo temporal de Excel detectado. Cierra Excel y sube el archivo original.', type: 'error' });
       return;
     }
 
@@ -204,16 +163,16 @@ export default function CUHImport() {
         const buf = await file.arrayBuffer();
         const wb = XLSX.read(buf, { type: 'array' });
         const sheet = wb.Sheets[wb.SheetNames[0]];
-        matrix = XLSX.utils.sheet_to_json<any[]>((sheet as any), { header: 1, defval: '' }) as any[][];
+        matrix = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: '' }) as any[][];
       }
     } catch (e: any) {
-      setMessage('No pude leer el archivo: ' + (e?.message || e));
+      setMessage({ text: `No pude leer el archivo: ${e?.message || e}`, type: 'error' });
       return;
     }
 
     const found = findHeaderIndex(matrix);
     if (!found) {
-      setMessage('No se encontró una fila de encabezados reconocible.');
+      setMessage({ text: 'No se encontró una fila de encabezados reconocible.', type: 'error' });
       return;
     }
 
@@ -223,9 +182,7 @@ export default function CUHImport() {
 
     for (let r = headerIdx + 1; r < matrix.length; r++) {
       const row = matrix[r];
-      if (!row) continue;
-      if (isJunkRow(row)) continue;
-      if (row.every((c: any) => String(c || '').trim() === '')) continue;
+      if (!row || isJunkRow(row) || row.every((c: any) => String(c || '').trim() === '')) continue;
 
       const obj: PreviewRow = {
         etapa: parseIntish(row[getKey(headerMap, 'etapa')]) ?? NaN,
@@ -235,24 +192,19 @@ export default function CUHImport() {
         partida: safeText(row[getKey(headerMap, 'partida')]),
         manzana: parseIntish(row[getKey(headerMap, 'manzana')]) ?? NaN,
         lote: parseIntish(row[getKey(headerMap, 'lote')]) ?? NaN,
-        ubicacion: safeText(row[getKey(headerMap, 'ubicacion')]) || null,
+        ubicacion: safeText(row[getKey(headerMap, 'ubicacion')])?.toUpperCase() || null,
         area_lote: parseMoney(row[getKey(headerMap, 'area_lote')]),
         precio_promotor: parseMoney(row[getKey(headerMap, 'precio_promotor')]),
         _row: r + 1,
         _errors: [],
       };
 
-      if (obj.ubicacion) obj.ubicacion = obj.ubicacion.toUpperCase();
-
       if (!isValidRow(obj)) {
         const errs: string[] = [];
         REQUIRED.forEach((k) => {
-          const v = (obj as any)[k];
-          if (typeof v === 'number') {
-            if (!Number.isFinite(v)) errs.push(k);
-          } else if (!v) {
-            errs.push(k);
-          }
+          const v = obj[k];
+          if (typeof v === 'number' && !Number.isFinite(v)) errs.push(k);
+          else if (!v) errs.push(k);
         });
         obj._errors = errs;
         bad.push(obj);
@@ -263,7 +215,7 @@ export default function CUHImport() {
 
     setRows(good);
     setBadRows(bad);
-    setMessage(`Detectados ${good.length} filas válidas y ${bad.length} con errores.`);
+    setMessage({ text: `Detectados ${good.length} filas válidas y ${bad.length} con errores.`, type: 'info' });
   }
 
   function getKey(map: Record<number, keyof CuhRow>, key: keyof CuhRow): number {
@@ -288,24 +240,19 @@ export default function CUHImport() {
         precio_promotor: r.precio_promotor == null ? null : Number(r.precio_promotor),
       }));
 
-      // Cast para asegurar que .upsert existe aunque tu cliente esté mal tipado.
-      const client = supabase as unknown as SupabaseClient;
-
-      const { error } = await client
-        .from('cuh')
-        .upsert(payload, { onConflict: 'etapa,codigo_cuh', ignoreDuplicates: false });
-
-      if (error) throw error;
-      setMessage(`Guardado OK: ${payload.length} filas.`);
+      await upsertCuh(payload);
+      setMessage({ text: `Guardado exitoso: ${payload.length} filas procesadas.`, type: 'success' });
+      setRows([]);
+      setBadRows([]);
+      setFileName(null);
     } catch (e: any) {
-      setMessage(`Error al guardar: ${e?.message || e}`);
+      setMessage({ text: `Error al guardar: ${e?.message || e}`, type: 'error' });
     } finally {
       setSaving(false);
     }
   }
 
   const missingHeaders = useMemo(() => {
-    // Info: qué columnas deseadas no aparecieron en la previa
     const found = new Set<string>();
     const any = (rows[0] ?? badRows[0]) as PreviewRow | undefined;
     if (any) {
@@ -317,19 +264,19 @@ export default function CUHImport() {
   }, [rows, badRows]);
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between gap-3">
+    <div className="mx-auto max-w-7xl space-y-6 p-4">
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold">Importar Catálogo CUH</h2>
-            <p className="text-xs text-gray-500">
-              Sube un archivo .xlsx/.xls o .csv con columnas:{' '}
-              <span className="font-mono">
-                ETAPA, CÓDIGO CUH, MODELO, PRECIO CUH, PARTIDA, MZ, LT, ESQ.-PARQ., ÁREA LOTE, (opcional) PRECIO - PROMOTOR
+            <h2 className="text-xl font-semibold text-gray-900">Importar Catálogo CUH</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Sube un archivo .xlsx, .xls o .csv con las columnas: <br />
+              <span className="font-mono text-xs">
+                ETAPA, CÓDIGO CUH, MODELO, PRECIO CUH, PARTIDA, MZ, LT, ESQ.-PARQ., ÁREA LOTE, PRECIO PROMOTOR (opcional)
               </span>
             </p>
           </div>
-          <label className="inline-flex cursor-pointer items-center rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
+          <label className="inline-flex cursor-pointer items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
             Seleccionar archivo
             <input
               type="file"
@@ -339,39 +286,41 @@ export default function CUHImport() {
             />
           </label>
         </div>
-
         {fileName && (
-          <div className="mt-2 text-xs text-gray-600">
-            Archivo: <span className="font-medium">{fileName}</span>
+          <div className="mt-4 text-sm text-gray-600">
+            Archivo seleccionado: <span className="font-medium">{fileName}</span>
           </div>
         )}
       </div>
 
       {message && (
-        <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800">
-          {message}
+        <div className={`rounded-lg p-4 text-sm font-medium ${
+          message.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' :
+          message.type === 'error' ? 'bg-red-50 text-red-800 border border-red-200' :
+          'bg-blue-50 text-blue-800 border border-blue-200'
+        }`}>
+          {message.text}
         </div>
       )}
 
-      {/* Preview válidas */}
       {rows.length > 0 && (
-        <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-semibold">Prevista (válidas): {rows.length}</h3>
+        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Filas válidas: {rows.length}</h3>
             <button
               onClick={saveAll}
               disabled={saving || !rows.length}
-              className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
               {saving ? 'Guardando…' : 'Guardar en base de datos'}
             </button>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-gray-100">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-gray-100 text-xs uppercase text-gray-600">
+              <thead className="bg-gray-50 text-xs uppercase text-gray-600">
                 <tr>
-                  <Th>etapa</Th><Th>codigo_cuh</Th><Th>modelo</Th><Th>precio_cuh</Th><Th>partida</Th>
-                  <Th>manzana</Th><Th>lote</Th><Th>ubicacion</Th><Th>area_lote</Th><Th>precio_promotor</Th>
+                  <Th>Etapa</Th><Th>Código CUH</Th><Th>Modelo</Th><Th>Precio CUH</Th><Th>Partida</Th>
+                  <Th>Manzana</Th><Th>Lote</Th><Th>Ubicación</Th><Th>Área Lote</Th><Th>Precio Promotor</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -384,34 +333,33 @@ export default function CUHImport() {
                     <Td className="font-mono">{r.partida}</Td>
                     <Td>{r.manzana}</Td>
                     <Td>{r.lote}</Td>
-                    <Td>{r.ubicacion || ''}</Td>
-                    <Td className="text-right">{r.area_lote ?? ''}</Td>
-                    <Td className="text-right">{r.precio_promotor != null ? fmtMoney(r.precio_promotor) : ''}</Td>
+                    <Td>{r.ubicacion || '-'}</Td>
+                    <Td className="text-right">{r.area_lote != null ? r.area_lote : '-'}</Td>
+                    <Td className="text-right">{r.precio_promotor != null ? fmtMoney(r.precio_promotor) : '-'}</Td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           {missingHeaders.length > 0 && (
-            <p className="mt-2 text-xs text-amber-600">
-              Columnas no encontradas en el archivo: {missingHeaders.join(', ')}
+            <p className="mt-3 text-sm text-amber-600">
+              Columnas no encontradas: {missingHeaders.join(', ')}
             </p>
           )}
         </div>
       )}
 
-      {/* Preview con errores */}
       {badRows.length > 0 && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 shadow-sm">
-          <h3 className="mb-2 text-sm font-semibold text-amber-900">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-amber-900 mb-4">
             Filas con errores: {badRows.length} (no se guardarán)
           </h3>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-lg border border-amber-100">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-amber-100 text-xs uppercase text-amber-900">
                 <tr>
-                  <Th>#fila</Th><Th>etapa</Th><Th>codigo_cuh</Th><Th>modelo</Th><Th>precio_cuh</Th>
-                  <Th>partida</Th><Th>manzana</Th><Th>lote</Th><Th>errores</Th>
+                  <Th>#Fila</Th><Th>Etapa</Th><Th>Código CUH</Th><Th>Modelo</Th><Th>Precio CUH</Th>
+                  <Th>Partida</Th><Th>Manzana</Th><Th>Lote</Th><Th>Errores</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-amber-200">
@@ -431,14 +379,16 @@ export default function CUHImport() {
               </tbody>
             </table>
           </div>
-          <p className="mt-2 text-xs text-amber-700">
-            Revisa encabezados y valores requeridos. Obligatorios: {REQUIRED.join(', ')}.
+          <p className="mt-3 text-sm text-amber-700">
+            Revisa los valores requeridos: {REQUIRED.join(', ')}.
           </p>
         </div>
       )}
 
       {!hasData && (
-        <div className="text-sm text-gray-500">Aún no hay datos cargados.</div>
+        <div className="text-center text-sm text-gray-500 py-6">
+          Selecciona un archivo para comenzar.
+        </div>
       )}
     </div>
   );
@@ -447,18 +397,18 @@ export default function CUHImport() {
 // ========================= mini UI =========================
 
 function Th({ children }: { children: React.ReactNode }) {
-  return <th className="px-2 py-1.5 font-medium">{children}</th>;
+  return <th className="px-3 py-2 font-medium">{children}</th>;
 }
 
 function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <td className={`px-2 py-1.5 ${className}`}>{children}</td>;
+  return <td className={`px-3 py-2 ${className}`}>{children}</td>;
 }
 
 function fmtMoney(n?: number | null) {
-  if (n == null || isNaN(n)) return '';
+  if (n == null || isNaN(n)) return '-';
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function asText(v: any) {
-  return v == null || (typeof v === 'number' && isNaN(v)) ? '' : String(v);
+  return v == null || (typeof v === 'number' && isNaN(v)) ? '-' : String(v);
 }
