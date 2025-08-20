@@ -1,4 +1,3 @@
-// src/app/dashboard/components/Reporte/reporteService.ts
 import { supabase } from "@/lib/supabaseClient";
 
 /** Tipos base (relajados para evitar choques de tipos locales) */
@@ -16,7 +15,7 @@ export type Cliente = {
   country_code: string;
   phone_number: string;
   full_phone: string | null;
-  email: string; // USER-DEFINED en BD => usamos string
+  email: string;
   tipo: string;
   created_at: string;
 };
@@ -125,8 +124,6 @@ async function must<T>(p: Promise<{ data?: T; error?: any }>): Promise<T> {
   return data as T;
 }
 
-/* ========= Helpers ========= */
-
 function nombrePromotor(p?: {
   first_name?: string | null;
   second_name?: string | null;
@@ -142,8 +139,6 @@ function tipoLabel(n?: number | null): "casa" | "terreno" | null {
   if (n == null) return null;
   return Number(n) === 1 ? "casa" : "terreno";
 }
-
-/* ========= Servicio principal ========= */
 
 export async function listReporte(): Promise<ReportRow[]> {
   const reservas = await must<any[]>(
@@ -270,7 +265,7 @@ export async function listReporte(): Promise<ReportRow[]> {
       primer_apellido: cli.primer_apellido,
       segundo_apellido: cli.segundo_apellido,
       cliente_email: cli.email || null,
-      // FIX 5076: paréntesis para no mezclar ?? y ||
+      // Paréntesis para no mezclar ?? y ||
       cliente_phone: (cli.full_phone ?? `${cli.country_code ?? ""} ${cli.phone_number ?? ""}`.trim()) || null,
 
       reserva_id: r.id,

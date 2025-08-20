@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   listGestiones,
   getSignedUrlFromDocs,
@@ -17,18 +17,30 @@ import {
 
 /* =============== UI utils =============== */
 function Modal({
-  open, onClose, title, children,
-}: { open: boolean; onClose: () => void; title: string; children: React.ReactNode; }) {
+  open,
+  onClose,
+  title,
+  children,
+  scroll = false,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+  scroll?: boolean;
+}) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-5xl rounded-2xl bg-white p-6 shadow-xl">
+      <div className="relative z-10 w-full max-w-5xl overflow-hidden rounded-2xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold">{title}</h3>
-          <button onClick={onClose} className="rounded-lg border px-2 py-1 text-sm hover:bg-gray-50">Cerrar</button>
+          <button onClick={onClose} className="rounded-lg border px-2 py-1 text-sm hover:bg-gray-50">
+            Cerrar
+          </button>
         </div>
-        <div>{children}</div>
+        <div className={scroll ? "max-h-[70vh] overflow-y-auto pr-1" : ""}>{children}</div>
       </div>
     </div>
   );
@@ -46,25 +58,33 @@ export default function GestionPagosPage() {
   // Modals
   const [clienteOpen, setClienteOpen] = useState(false);
   const [propOpen, setPropOpen] = useState(false);
+  const [docsOpen, setDocsOpen] = useState(false);
   const [pagosOpen, setPagosOpen] = useState(false);
 
-  // Docs
+  // Doc viewer & editor
   const [docView, setDocView] = useState<{ open: boolean; title: string; url: string | null }>({
-    open: false, title: "", url: null,
+    open: false,
+    title: "",
+    url: null,
   });
-  const [docEdit, setDocEdit] = useState<{ open: boolean; tipo: DocumentoTipo | null; row: GestionPagoRow | null }>({
-    open: false, tipo: null, row: null,
-  });
+  const [docEdit, setDocEdit] = useState<{
+    open: boolean;
+    reservaId: string | null;
+    tipo: DocumentoTipo | null;
+    title: string;
+    exists: boolean;
+  }>({ open: false, reservaId: null, tipo: null, title: "", exists: false });
+  const [docEditFile, setDocEditFile] = useState<File | null>(null);
   const [docVersion, setDocVersion] = useState(0);
 
   // Selección actual
   const [current, setCurrent] = useState<GestionPagoRow | null>(null);
 
-  // Estado de pagos (resumen y listas)
+  // Estado de pagos
   const [resumen, setResumen] = useState<{
     reserva: { objetivo: number; pagado: number; restante: number; pagos: Pago[] };
     inicial: { objetivo: number; pagado: number; restante: number; pagos: Pago[] };
-    final:   { objetivo: number; pagado: number; restante: number; pagos: Pago[] };
+    final: { objetivo: number; pagado: number; restante: number; pagos: Pago[] };
   } | null>(null);
   const [etapaActual, setEtapaActual] = useState<PagoStage | "completado">("reserva");
 
@@ -92,30 +112,46 @@ export default function GestionPagosPage() {
     })();
   }, []);
 
-  /* ======== Docs: Ver / Editar ======== */
-  async function handleOpenDocView(row: GestionPagoRow, tipo: DocumentoTipo) {
-    const reg = await getDocumento(row.reserva.id, tipo);
+  /* ======== Documentos ======== */
+  function openDocs(row: GestionPagoRow) {
+    setCurrent(row);
+    setDocsOpen(true);
+    setDocVersion((v) => v + 1); // forzar re-chequeo de existencia
+  }
+
+  async function handleViewDoc(reservaId: string, tipo: DocumentoTipo, title: string) {
+    const reg = await getDocumento(reservaId, tipo);
     if (!reg) return alert("No hay documento cargado todavía");
     const url = await getSignedUrlFromDocs(reg.file_path);
-    setDocView({
-      open: true,
-      title: `Documento: ${tipo.toUpperCase()} — ${row.cliente.documento_identidad ?? row.cliente.email ?? row.cliente.id}`,
-      url,
-    });
+    setDocView({ open: true, title, url });
   }
-  function handleOpenDocEdit(row: GestionPagoRow, tipo: DocumentoTipo) {
-    setDocEdit({ open: true, tipo, row });
-  }
-  async function handleUploadReplace(file: File) {
-    if (!docEdit.open || !docEdit.tipo || !docEdit.row) return;
+
+  async function quickUpload(reservaId: string, tipo: DocumentoTipo, file: File) {
     setUploading(true);
     try {
-      await uploadDocumento(docEdit.row.reserva.id, docEdit.tipo, file);
-      setDocEdit({ open: false, tipo: null, row: null });
+      await uploadDocumento(reservaId, tipo, file);
       setDocVersion((v) => v + 1);
-      await handleOpenDocView(docEdit.row, docEdit.tipo);
+      setToast(`Se cargó ${labelDoc(tipo)}.`);
+      setTimeout(() => setToast(null), 2500);
     } catch (e: any) {
       alert(`Error al subir: ${e?.message || e}`);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function confirmReplace() {
+    if (!docEdit.open || !docEdit.tipo || !docEdit.reservaId || !docEditFile) return;
+    setUploading(true);
+    try {
+      await uploadDocumento(docEdit.reservaId, docEdit.tipo, docEditFile);
+      setDocVersion((v) => v + 1);
+      setDocEdit({ open: false, reservaId: null, tipo: null, title: "", exists: false });
+      setDocEditFile(null);
+      setToast(`Se reemplazó ${labelDoc(docEdit.tipo)}.`);
+      setTimeout(() => setToast(null), 2500);
+    } catch (e: any) {
+      alert(`Error al reemplazar: ${e?.message || e}`);
     } finally {
       setUploading(false);
     }
@@ -128,7 +164,6 @@ export default function GestionPagosPage() {
     const res = await getResumenPagos(row.reserva);
     setResumen(res.resumen);
     setEtapaActual(res.etapaActual);
-    // Preselecciona la etapa “actual” en el formulario
     setStage(res.etapaActual === "completado" ? "final" : res.etapaActual);
   }
 
@@ -170,7 +205,9 @@ export default function GestionPagosPage() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold">Gestión de Pagos</h2>
-            <p className="text-sm text-gray-500">Documentos (DNI, Anexos) y pagos por etapas: <b>Reserva</b>, <b>Cuota inicial (5%)</b> y <b>Cuotas finales</b>.</p>
+            <p className="text-sm text-gray-500">
+              Tabla general con accesos a datos del cliente, propiedad, documentos y pagos (por etapas).
+            </p>
           </div>
           <button
             onClick={() => location.reload()}
@@ -194,55 +231,66 @@ export default function GestionPagosPage() {
             <table className="min-w-full text-sm">
               <thead className="bg-gray-50 text-xs uppercase text-gray-600">
                 <tr>
-                  <th className="px-3 py-2">Documento identidad</th>
-                  <th className="px-3 py-2">Cliente</th>
-                  <th className="px-3 py-2">Propiedad</th>
-                  <th className="px-3 py-2">Docs</th>
-                  <th className="px-3 py-2">Pagos</th>
+                  <Th>Documento</Th>
+                  <Th>Primer apellido</Th>
+                  <Th>Segundo apellido</Th>
+                  <Th center>Ver datos cliente</Th>
+                  <Th>Código de propiedad</Th>
+                  <Th center>Ver datos propiedad</Th>
+                  <Th center>Documentos</Th>
+                  <Th center>Pagos</Th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {rows.map((row) => (
                   <tr key={row.reserva.id} className="hover:bg-gray-50">
-                    <td className="px-3 py-2 font-mono">{row.cliente.documento_identidad || "—"}</td>
+                    <Td mono>{row.cliente.documento_identidad || "—"}</Td>
+                    <Td>{row.cliente.primer_apellido || "—"}</Td>
+                    <Td>{row.cliente.segundo_apellido || "—"}</Td>
 
-                    <td className="px-3 py-2">
-                      <div className="font-medium">
-                        {row.cliente.primer_nombre} {row.cliente.primer_apellido}
-                      </div>
-                      <div className="text-xs text-gray-500">{row.cliente.email || "—"}</div>
-                      <div className="text-xs text-gray-500">{row.cliente.full_phone || "—"}</div>
-                    </td>
+                    <Td center>
+                      <button
+                        onClick={() => {
+                          setCurrent(row);
+                          setClienteOpen(true);
+                        }}
+                        className="rounded border px-3 py-1 text-xs hover:bg-gray-50"
+                      >
+                        Ver datos cliente
+                      </button>
+                    </Td>
 
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono">{row.propiedad.codigo_cuh}</span>
-                        <button
-                          onClick={() => { setCurrent(row); setPropOpen(true); }}
-                          className="rounded border px-2 py-1 text-xs hover:bg-gray-50"
-                        >
-                          Ver propiedad
-                        </button>
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        ET {row.propiedad.etapa} · MZ {row.propiedad.manzana} · LT {row.propiedad.lote}
-                      </div>
-                    </td>
+                    <Td mono>{row.propiedad.codigo_cuh}</Td>
 
-                    <td className="px-3 py-2">
-                      <div className="flex gap-2 flex-wrap">
-                        <DocButtons row={row} version={docVersion} onView={handleOpenDocView} onEdit={handleOpenDocEdit} />
-                      </div>
-                    </td>
+                    <Td center>
+                      <button
+                        onClick={() => {
+                          setCurrent(row);
+                          setPropOpen(true);
+                        }}
+                        className="rounded border px-3 py-1 text-xs hover:bg-gray-50"
+                      >
+                        Ver datos propiedad
+                      </button>
+                    </Td>
 
-                    <td className="px-3 py-2">
+                    <Td center>
+                      <button
+                        onClick={() => openDocs(row)}
+                        className="rounded bg-sky-600 px-3 py-1 text-xs font-medium text-white hover:bg-sky-700"
+                      >
+                        Documentos
+                      </button>
+                    </Td>
+
+                    <Td center>
                       <button
                         onClick={() => openPagos(row)}
                         className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700"
                       >
-                        Ver / Registrar
+                        Pagos
                       </button>
-                    </td>
+                    </Td>
                   </tr>
                 ))}
               </tbody>
@@ -251,8 +299,36 @@ export default function GestionPagosPage() {
         )}
       </div>
 
-      {/* Modal Propiedad */}
-      <Modal open={propOpen} onClose={() => setPropOpen(false)} title="Datos de la propiedad">
+      {/* Modal: Datos del cliente */}
+      <Modal open={clienteOpen} onClose={() => setClienteOpen(false)} title="Datos del cliente" scroll>
+        {current && (
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <Info label="ID" value={current.cliente.id} mono />
+            <Info label="Tipo" value={current.cliente.tipo} />
+            <Info label="Documento" value={current.cliente.documento_identidad ?? "—"} />
+            <Info label="Tipo documento" value={current.cliente.tipo_documento ?? "—"} />
+            <Info label="Primer nombre" value={current.cliente.primer_nombre ?? "—"} />
+            <Info label="Segundo nombre" value={current.cliente.segundo_nombre ?? "—"} />
+            <Info label="Primer apellido" value={current.cliente.primer_apellido ?? "—"} />
+            <Info label="Segundo apellido" value={current.cliente.segundo_apellido ?? "—"} />
+            <Info label="Email" value={current.cliente.email ?? "—"} />
+            <Info
+              label="Teléfono"
+              value={
+                current.cliente.full_phone ??
+                `${current.cliente.country_code ?? ""} ${current.cliente.phone_number ?? ""}`
+              }
+            />
+            <Info
+              label="Creado"
+              value={current.cliente.created_at ? new Date(current.cliente.created_at).toLocaleString() : "—"}
+            />
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal: Datos de la propiedad */}
+      <Modal open={propOpen} onClose={() => setPropOpen(false)} title="Datos de la propiedad" scroll>
         {current && (
           <div className="grid grid-cols-2 gap-3 text-sm">
             <Info label="Código CUH" value={current.propiedad.codigo_cuh} mono />
@@ -261,21 +337,136 @@ export default function GestionPagosPage() {
             <Info label="Partida" value={current.propiedad.partida} mono />
             <Info label="MZ" value={String(current.propiedad.manzana)} />
             <Info label="LT" value={String(current.propiedad.lote)} />
-            <Info label="Ubicación" value={(current.propiedad.ubicacion && current.propiedad.ubicacion.trim()) ? current.propiedad.ubicacion : "Interior"} />
-            <Info label="Área lote" value={current.propiedad.area_lote != null ? String(current.propiedad.area_lote) : "—"} />
+            <Info
+              label="Ubicación"
+              value={
+                current.propiedad.ubicacion && current.propiedad.ubicacion.trim()
+                  ? current.propiedad.ubicacion
+                  : "Interior"
+              }
+            />
+            <Info
+              label="Área lote"
+              value={current.propiedad.area_lote != null ? String(current.propiedad.area_lote) : "—"}
+            />
             <Info label="Precio CUH" value={`$ ${fmt(current.propiedad.precio_cuh)}`} />
-            <Info label="Precio promotor" value={current.propiedad.precio_promotor != null ? `$ ${fmt(current.propiedad.precio_promotor)}` : "—"} />
+            <Info
+              label="Precio promotor"
+              value={
+                current.propiedad.precio_promotor != null ? `$ ${fmt(current.propiedad.precio_promotor)}` : "—"
+              }
+            />
           </div>
         )}
       </Modal>
 
-      {/* Modal Ver Documento */}
-      <Modal open={docView.open} onClose={() => setDocView({ open: false, title: "", url: null })} title={docView.title || "Documento"}>
+      {/* Modal: Documentos - 3 cabeceras con acción debajo */}
+      <Modal open={docsOpen} onClose={() => setDocsOpen(false)} title="Documentos del cliente" scroll>
+        {!current ? (
+          <p className="text-sm text-gray-500">Selecciona una fila.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <DocHeaderCell
+              key={`dni-${current.reserva.id}-${docVersion}`}
+              title="Documento de identidad"
+              tipo="dni"
+              reservaId={current.reserva.id}
+              onPencil={() =>
+                setDocEdit({
+                  open: true,
+                  reservaId: current.reserva.id,
+                  tipo: "dni",
+                  title: "Documento de identidad",
+                  exists: true,
+                })
+              }
+              onUpload={(file) => quickUpload(current.reserva.id, "dni", file)}
+            />
+            <DocHeaderCell
+              key={`a1-${current.reserva.id}-${docVersion}`}
+              title="Anexo 1"
+              tipo="anexo1"
+              reservaId={current.reserva.id}
+              onPencil={() =>
+                setDocEdit({
+                  open: true,
+                  reservaId: current.reserva.id,
+                  tipo: "anexo1",
+                  title: "Anexo 1",
+                  exists: true,
+                })
+              }
+              onUpload={(file) => quickUpload(current.reserva.id, "anexo1", file)}
+            />
+            <DocHeaderCell
+              key={`a2-${current.reserva.id}-${docVersion}`}
+              title="Anexo A2"
+              tipo="anexoA2"
+              reservaId={current.reserva.id}
+              onPencil={() =>
+                setDocEdit({
+                  open: true,
+                  reservaId: current.reserva.id,
+                  tipo: "anexoA2",
+                  title: "Anexo A2",
+                  exists: true,
+                })
+              }
+              onUpload={(file) => quickUpload(current.reserva.id, "anexoA2", file)}
+            />
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal: Editar/Reemplazar documento (aparece con ✏️) */}
+      <Modal open={docEdit.open} onClose={() => setDocEdit({ open: false, reservaId: null, tipo: null, title: "", exists: false })} title={docEdit.title || "Documento"} scroll>
+        {!docEdit.open || !docEdit.tipo || !docEdit.reservaId ? (
+          <p className="text-sm text-gray-500">Cargando…</p>
+        ) : (
+          <div className="space-y-4">
+            <div className="rounded border p-3 text-sm">
+              <div className="mb-2 font-medium">Archivo actual</div>
+              <button
+                onClick={() => handleViewDoc(docEdit.reservaId!, docEdit.tipo!, docEdit.title)}
+                className="rounded border px-3 py-1 text-xs hover:bg-gray-50"
+              >
+                Ver actual
+              </button>
+            </div>
+
+            <div className="rounded border p-3 text-sm">
+              <div className="mb-2 font-medium">Reemplazar por</div>
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => setDocEditFile(e.target.files?.[0] ?? null)}
+              />
+              <div className="mt-3">
+                <button
+                  onClick={confirmReplace}
+                  disabled={!docEditFile || uploading}
+                  className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {uploading ? "Subiendo…" : "Reemplazar"}
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">Formato permitido: PDF.</p>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Visor PDF */}
+      <Modal open={docView.open} onClose={() => setDocView({ open: false, title: "", url: null })} title={docView.title} scroll>
         {docView.url ? (
           <div className="h-[70vh] w-full">
             <iframe src={docView.url} className="h-full w-full rounded border" />
             <div className="mt-2 text-xs">
-              Si no carga el visor, <a className="text-blue-600 underline" href={docView.url} target="_blank" rel="noreferrer">ábrelo en una pestaña nueva</a>.
+              Si no carga el visor,{" "}
+              <a className="text-blue-600 underline" href={docView.url} target="_blank" rel="noreferrer">
+                ábrelo en una pestaña nueva
+              </a>
+              .
             </div>
           </div>
         ) : (
@@ -283,38 +474,26 @@ export default function GestionPagosPage() {
         )}
       </Modal>
 
-      {/* Modal Editar/Subir Documento */}
-      <Modal
-        open={docEdit.open}
-        onClose={() => setDocEdit({ open: false, tipo: null, row: null })}
-        title={`Subir / Reemplazar: ${docEdit.tipo?.toUpperCase() || ""}`}
-      >
-        <div className="flex items-center gap-3">
-          <input
-            type="file"
-            accept="application/pdf"
-            onChange={(e) => e.target.files && handleUploadReplace(e.target.files[0])}
-            disabled={uploading || !docEdit.open}
-          />
-          <span className="text-xs text-gray-500">Solo PDF. Reemplaza si ya existe.</span>
-        </div>
-      </Modal>
-
-      {/* Modal Pagos (gráfico + tablas + registrar) */}
-      <Modal open={pagosOpen} onClose={() => setPagosOpen(false)} title="Pagos y estado por etapas">
+      {/* Modal: Pagos (con scroll) */}
+      <Modal open={pagosOpen} onClose={() => setPagosOpen(false)} title="Pagos y estado por etapas" scroll>
         {!current || !resumen ? (
           <p className="text-sm text-gray-500">Cargando…</p>
         ) : (
           <div className="space-y-5">
             {/* Encabezado del caso */}
             <div className="rounded-lg border p-3">
-              <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <div className="text-xs text-gray-500">Reserva</div>
-                  <div className="text-sm font-medium">#{current.reserva.id.slice(0,8)} · {current.propiedad.codigo_cuh}</div>
+                  <div className="text-sm font-medium">
+                    #{current.reserva.id.slice(0, 8)} · {current.propiedad.codigo_cuh}
+                  </div>
                 </div>
                 <div className="text-xs text-gray-500">
-                  Estado: <b className="text-gray-800 capitalize">{etapaActual === "completado" ? "completado" : `en ${etapaActual}`}</b>
+                  Estado:{" "}
+                  <b className="text-gray-800 capitalize">
+                    {etapaActual === "completado" ? "completado" : `en ${etapaActual}`}
+                  </b>
                 </div>
               </div>
             </div>
@@ -323,30 +502,15 @@ export default function GestionPagosPage() {
             <Stepper etapa={etapaActual} />
 
             {/* Tarjetas de progreso */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <StageCard
-                title="Reserva"
-                color="emerald"
-                objetivo={resumen.reserva.objetivo}
-                pagado={resumen.reserva.pagado}
-              />
-              <StageCard
-                title="Cuota inicial (5%)"
-                color="sky"
-                objetivo={resumen.inicial.objetivo}
-                pagado={resumen.inicial.pagado}
-              />
-              <StageCard
-                title="Cuotas finales"
-                color="violet"
-                objetivo={resumen.final.objetivo}
-                pagado={resumen.final.pagado}
-              />
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <StageCard title="Reserva" color="emerald" objetivo={resumen.reserva.objetivo} pagado={resumen.reserva.pagado} />
+              <StageCard title="Cuota inicial (5%)" color="sky" objetivo={resumen.inicial.objetivo} pagado={resumen.inicial.pagado} />
+              <StageCard title="Cuotas finales" color="violet" objetivo={resumen.final.objetivo} pagado={resumen.final.pagado} />
             </div>
 
             {/* Registrar pago */}
             <div className="rounded-2xl border bg-gray-50 p-4">
-              <h4 className="font-medium mb-3">Registrar pago</h4>
+              <h4 className="mb-3 font-medium">Registrar pago</h4>
               <div className="flex flex-wrap items-center gap-3">
                 <select
                   value={stage}
@@ -364,11 +528,7 @@ export default function GestionPagosPage() {
                   onChange={(e) => setAmount(e.target.value)}
                   className="w-40 rounded border px-3 py-2 text-sm"
                 />
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  onChange={(e) => setVoucher(e.target.files?.[0] || null)}
-                />
+                <input type="file" accept="application/pdf" onChange={(e) => setVoucher(e.target.files?.[0] || null)} />
                 <button
                   onClick={registrarPago}
                   disabled={uploading}
@@ -381,21 +541,27 @@ export default function GestionPagosPage() {
             </div>
 
             {/* Listas por etapa */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <PagosTable
                 title="Pagos de reserva"
                 pagos={resumen.reserva.pagos}
-                onOpen={(p) => p.file_path && getSignedUrlFromPayments(p.file_path).then((url) => window.open(url, "_blank"))}
+                onOpen={(p) =>
+                  p.file_path && getSignedUrlFromPayments(p.file_path).then((url) => window.open(url, "_blank"))
+                }
               />
               <PagosTable
                 title="Pagos de cuota inicial"
                 pagos={resumen.inicial.pagos}
-                onOpen={(p) => p.file_path && getSignedUrlFromPayments(p.file_path).then((url) => window.open(url, "_blank"))}
+                onOpen={(p) =>
+                  p.file_path && getSignedUrlFromPayments(p.file_path).then((url) => window.open(url, "_blank"))
+                }
               />
               <PagosTable
                 title="Pagos de cuotas finales"
                 pagos={resumen.final.pagos}
-                onOpen={(p) => p.file_path && getSignedUrlFromPayments(p.file_path).then((url) => window.open(url, "_blank"))}
+                onOpen={(p) =>
+                  p.file_path && getSignedUrlFromPayments(p.file_path).then((url) => window.open(url, "_blank"))
+                }
               />
             </div>
           </div>
@@ -406,6 +572,21 @@ export default function GestionPagosPage() {
 }
 
 /* =============== Subcomponentes =============== */
+function Th({ children, center = false }: { children: React.ReactNode; center?: boolean }) {
+  return <th className={`px-3 py-2 font-medium ${center ? "text-center" : "text-left"}`}>{children}</th>;
+}
+function Td({
+  children,
+  mono,
+  center = false,
+}: {
+  children: React.ReactNode;
+  mono?: boolean;
+  center?: boolean;
+}) {
+  return <td className={`px-3 py-2 ${mono ? "font-mono" : ""} ${center ? "text-center" : ""}`}>{children}</td>;
+}
+
 function Info({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
@@ -415,75 +596,75 @@ function Info({ label, value, mono }: { label: string; value: string; mono?: boo
   );
 }
 
-function DocButtons({
-  row, version, onView, onEdit,
+/** Cabecera + acción debajo (✏️ si existe, “Subir PDF” si no) */
+function DocHeaderCell({
+  title,
+  tipo,
+  reservaId,
+  onPencil,
+  onUpload,
 }: {
-  row: GestionPagoRow;
-  version: number;
-  onView: (row: GestionPagoRow, tipo: DocumentoTipo) => void;
-  onEdit: (row: GestionPagoRow, tipo: DocumentoTipo) => void;
+  title: string;
+  tipo: DocumentoTipo;
+  reservaId: string;
+  onPencil: () => void;
+  onUpload: (file: File) => void;
 }) {
-  const [hasDNI, setHasDNI] = useState<boolean | null>(null);
-  const [hasA1, setHasA1] = useState<boolean | null>(null);
-  const [hasA2, setHasA2] = useState<boolean | null>(null);
+  const [exists, setExists] = useState<boolean | null>(null);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const [d1, d2, d3] = await Promise.all([
-          getDocumento(row.reserva.id, "dni"),
-          getDocumento(row.reserva.id, "anexo1"),
-          getDocumento(row.reserva.id, "anexoA2"),
-        ]);
-        if (mounted) {
-          setHasDNI(!!d1);
-          setHasA1(!!d2);
-          setHasA2(!!d3);
-        }
+        const reg = await getDocumento(reservaId, tipo);
+        if (mounted) setExists(!!reg);
       } catch {
-        if (mounted) {
-          setHasDNI(false); setHasA1(false); setHasA2(false);
-        }
+        if (mounted) setExists(false);
       }
     })();
-    return () => { mounted = false; };
-  }, [row.reserva.id, version]);
+    return () => {
+      mounted = false;
+    };
+  }, [reservaId, tipo]);
 
   return (
-    <div className="flex gap-2 flex-wrap">
-      <DocCellMini label="DNI" has={hasDNI} onView={() => onView(row, "dni")} onEdit={() => onEdit(row, "dni")} />
-      <DocCellMini label="Anexo 1" has={hasA1} onView={() => onView(row, "anexo1")} onEdit={() => onEdit(row, "anexo1")} />
-      <DocCellMini label="Anexo A2" has={hasA2} onView={() => onView(row, "anexoA2")} onEdit={() => onEdit(row, "anexoA2")} />
-    </div>
-  );
-}
-
-function DocCellMini({
-  label, has, onView, onEdit,
-}: {
-  label: string;
-  has: boolean | null;
-  onView: () => void;
-  onEdit: () => void;
-}) {
-  if (has == null) return <span className="text-[10px] text-gray-400">…</span>;
-
-  if (!has) {
-    return (
-      <button
-        onClick={onEdit}
-        className="rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white hover:bg-blue-700"
-      >
-        Subir {label}
-      </button>
-    );
-  }
-  return (
-    <div className="flex items-center gap-2">
-      <button onClick={onView} className="rounded border px-2 py-1 text-xs hover:bg-gray-50">Ver {label}</button>
-      <button onClick={onEdit} className="rounded border px-2 py-1 text-xs hover:bg-gray-50">Editar</button>
-      <span className="text-[10px] rounded bg-green-100 px-2 py-0.5 text-green-700">cargado</span>
+    <div className="rounded-lg border p-3">
+      <div className="text-sm font-semibold">{title}</div>
+      <div className="mt-3">
+        {exists == null ? (
+          <span className="text-xs text-gray-400">Verificando…</span>
+        ) : exists ? (
+          <button
+            title="Reemplazar"
+            onClick={onPencil}
+            className="inline-flex items-center gap-2 rounded border px-3 py-2 text-xs hover:bg-gray-50"
+          >
+            {/* Icono lápiz (inline SVG para no depender de librerías) */}
+            <svg width="14" height="14" viewBox="0 0 24 24" className="opacity-80" aria-hidden>
+              <path
+                d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"
+                fill="currentColor"
+              />
+              <path
+                d="M20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
+                fill="currentColor"
+              />
+            </svg>
+            <span>Editar</span>
+          </button>
+        ) : (
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700">
+            Subir PDF
+            <input
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={(e) => e.target.files && onUpload(e.target.files[0])}
+            />
+          </label>
+        )}
+      </div>
+      {exists && <span className="mt-2 inline-block rounded bg-green-100 px-2 py-0.5 text-[11px] text-green-700">cargado</span>}
     </div>
   );
 }
@@ -494,24 +675,25 @@ function Stepper({ etapa }: { etapa: PagoStage | "completado" }) {
   const steps: Array<{ key: PagoStage; label: string }> = [
     { key: "reserva", label: "Reserva" },
     { key: "inicial", label: "Cuota inicial" },
-    { key: "final",   label: "Cuotas finales" },
+    { key: "final", label: "Cuotas finales" },
   ];
 
-  const index = etapa === "completado" ? steps.length : steps.findIndex(s => s.key === etapa);
+  const index = etapa === "completado" ? steps.length : steps.findIndex((s) => s.key === etapa);
   return (
     <div className="flex items-center justify-between rounded-lg border p-3 text-sm">
       {steps.map((s, i) => {
         const done = index > i;
         const current = index === i;
         return (
-          <div key={s.key} className="flex-1 flex items-center">
-            <div className={[
-              "flex items-center gap-2 rounded-full px-3 py-1",
-              done ? "bg-emerald-100 text-emerald-900" :
-              current ? "bg-sky-100 text-sky-900" : "bg-gray-100 text-gray-600"
-            ].join(" ")}>
+          <div key={s.key} className="flex flex-1 items-center">
+            <div
+              className={[
+                "flex items-center gap-2 rounded-full px-3 py-1",
+                done ? "bg-emerald-100 text-emerald-900" : current ? "bg-sky-100 text-sky-900" : "bg-gray-100 text-gray-600",
+              ].join(" ")}
+            >
               <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs font-semibold">
-                {i+1}
+                {i + 1}
               </span>
               <span className="font-medium">{s.label}</span>
             </div>
@@ -520,27 +702,30 @@ function Stepper({ etapa }: { etapa: PagoStage | "completado" }) {
         );
       })}
       {etapa === "completado" && (
-        <div className="ml-3 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">
-          COMPLETADO
-        </div>
+        <div className="ml-3 rounded-full bg-emerald-600 px-3 py-1 text-xs font-semibold text-white">COMPLETADO</div>
       )}
     </div>
   );
 }
 
 function StageCard({
-  title, color, objetivo, pagado,
-}: { title: string; color: "emerald" | "sky" | "violet"; objetivo: number; pagado: number; }) {
+  title,
+  color,
+  objetivo,
+  pagado,
+}: {
+  title: string;
+  color: "emerald" | "sky" | "violet";
+  objetivo: number;
+  pagado: number;
+}) {
   const pct = objetivo > 0 ? Math.min(100, Math.round((pagado / objetivo) * 100)) : 0;
   const restante = Math.max(0, objetivo - pagado);
 
   const barColor =
-    color === "emerald" ? "bg-emerald-500" :
-    color === "sky"     ? "bg-sky-500" :
-                          "bg-violet-500";
+    color === "emerald" ? "bg-emerald-500" : color === "sky" ? "bg-sky-500" : "bg-violet-500";
 
-  const chipColor =
-    restante <= 0 ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-700";
+  const chipColor = restante <= 0 ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-700";
 
   return (
     <div className="rounded-xl border p-4">
@@ -574,9 +759,13 @@ function StageCard({
 }
 
 function PagosTable({
-  title, pagos, onOpen,
+  title,
+  pagos,
+  onOpen,
 }: {
-  title: string; pagos: Pago[]; onOpen: (p: Pago) => void;
+  title: string;
+  pagos: Pago[];
+  onOpen: (p: Pago) => void;
 }) {
   return (
     <div className="rounded-xl border">
@@ -592,21 +781,39 @@ function PagosTable({
           </thead>
           <tbody className="divide-y">
             {pagos.length === 0 ? (
-              <tr><td className="px-3 py-3 text-gray-500 text-xs" colSpan={3}>Sin pagos.</td></tr>
-            ) : pagos.map((p) => (
-              <tr key={p.id}>
-                <td className="px-3 py-2">{new Date(p.created_at).toLocaleString()}</td>
-                <td className="px-3 py-2 text-right">$ {fmt(p.amount)}</td>
-                <td className="px-3 py-2">
-                  {p.file_path
-                    ? <button onClick={() => onOpen(p)} className="rounded border px-2 py-1 text-xs hover:bg-gray-50">Ver</button>
-                    : <span className="text-gray-400">—</span>}
+              <tr>
+                <td className="px-3 py-3 text-xs text-gray-500" colSpan={3}>
+                  Sin pagos.
                 </td>
               </tr>
-            ))}
+            ) : (
+              pagos.map((p) => (
+                <tr key={p.id}>
+                  <td className="px-3 py-2">{new Date(p.created_at).toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">$ {fmt(p.amount)}</td>
+                  <td className="px-3 py-2">
+                    {p.file_path ? (
+                      <button
+                        onClick={() => onOpen(p)}
+                        className="rounded border px-2 py-1 text-xs hover:bg-gray-50"
+                      >
+                        Ver
+                      </button>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
     </div>
   );
+}
+
+/* =============== Helpers =============== */
+function labelDoc(t: DocumentoTipo) {
+  return t === "dni" ? "Documento de identidad" : t === "anexo1" ? "Anexo 1" : "Anexo A2";
 }
