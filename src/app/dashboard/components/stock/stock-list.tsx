@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { useCountdown } from '@/hooks/useCountDown';
 
 type Cuh = {
   id: string;
@@ -13,6 +14,7 @@ type Cuh = {
   partida: string;
   manzana: number;
   lote: number;
+  tipo: 0 | 1; // 1 Casa, 0 Terreno
   ubicacion: string | null;
   area_lote: number | null;
   precio_promotor: number | null;
@@ -26,6 +28,8 @@ type Reserva = {
   cliente_id: string;
   promotor_id: string;
   estado: 'reservado' | 'separado' | string;
+  required_amount: number | null;
+  expires_at: string | null;
   created_at: string;
 };
 
@@ -48,18 +52,34 @@ type Profile = {
 
 const RESERVED_STATES = ['reservado', 'separado'] as const;
 
+type SortKey =
+  | 'etapa'
+  | 'codigo_cuh'
+  | 'modelo'
+  | 'tipo'
+  | 'precio_cuh'
+  | 'partida'
+  | 'manzana'
+  | 'lote'
+  | 'ubicacion'
+  | 'area_lote'
+  | 'precio_promotor';
+
 export default function StockList() {
   const [data, setData] = useState<Cuh[]>([]);
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [clients, setClients] = useState<Cliente[]>([]);
   const [promotores, setPromotores] = useState<Record<string, Profile>>({});
   const [q, setQ] = useState('');
-  const [modelo, setModelo] = useState<string>('');
+
+  // sort state
+  const [sortKey, setSortKey] = useState<SortKey>('codigo_cuh');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     const client = supabase as unknown as SupabaseClient;
     (async () => {
-      // CUH
+      // CUH (incluye 'tipo')
       const { data: cuhData } = await client.from('cuh').select('*');
       if (cuhData) setData(cuhData as Cuh[]);
 
@@ -69,15 +89,14 @@ export default function StockList() {
         .select('id,primer_nombre,segundo_nombre,primer_apellido,segundo_apellido,full_phone');
       if (cliData) setClients(cliData as Cliente[]);
 
-      // Reservas
+      // Reservas activas (vista/materializada)
       const { data: resvData } = await client
-        .from('reservas')
-        .select('id,cuh_id,cliente_id,promotor_id,estado,created_at')
-        .in('estado', ['reservado', 'separado']);
+        .from('reservas_activas')
+        .select('id,cuh_id,cliente_id,promotor_id,estado,required_amount,expires_at,created_at');
       if (resvData) setReservas(resvData as Reserva[]);
 
-      // Promotores
-      const ids = Array.from(new Set(resvData?.map((r: Reserva) => r.promotor_id) || []));
+      // Promotores involucrados
+      const ids = Array.from(new Set((resvData || []).map((r: Reserva) => r.promotor_id)));
       if (ids.length > 0) {
         const { data: profData } = await client
           .from('profiles')
@@ -85,17 +104,15 @@ export default function StockList() {
           .in('id', ids);
         if (profData) {
           setPromotores(
-            profData.reduce((acc: Record<string, Profile>, p: Profile) => ({ ...acc, [p.id]: p }), {} as Record<string, Profile>)
+            (profData as Profile[]).reduce(
+              (acc, p) => ({ ...acc, [p.id]: p }),
+              {} as Record<string, Profile>
+            )
           );
         }
       }
     })();
   }, []);
-
-  const modelos = useMemo(
-    () => Array.from(new Set(data.map((d) => d.modelo))).sort(),
-    [data]
-  );
 
   const reservaByCuh = useMemo(() => {
     const m = new Map<string, Reserva>();
@@ -105,14 +122,46 @@ export default function StockList() {
     return m;
   }, [reservas]);
 
-  const rows = useMemo(() => {
+  const filtered = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    if (!term) return data;
     return data.filter((d) => {
       const text = `${d.codigo_cuh} ${d.modelo} ${d.partida} ${d.ubicacion || ''}`.toLowerCase();
-      const okQ = !q || text.includes(q.toLowerCase());
-      const okM = !modelo || d.modelo === modelo;
-      return okQ && okM;
+      return text.includes(term);
     });
-  }, [data, q, modelo]);
+  }, [data, q]);
+
+  const rows = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      const dir = sortDir === 'asc' ? 1 : -1;
+      const aVal = (a as any)[sortKey];
+      const bVal = (b as any)[sortKey];
+
+      // num vs string
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return (aVal - bVal) * dir;
+      }
+      const ax = String(aVal ?? '').toLowerCase();
+      const bx = String(bVal ?? '').toLowerCase();
+      if (ax < bx) return -1 * dir;
+      if (ax > bx) return 1 * dir;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  function toggleSort(k: SortKey) {
+    if (k === sortKey) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(k);
+      setSortDir('asc');
+    }
+  }
+
+  const arrow = (k: SortKey) =>
+    sortKey !== k ? '↕' : sortDir === 'asc' ? '▲' : '▼';
 
   return (
     <div className="space-y-3">
@@ -123,18 +172,6 @@ export default function StockList() {
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
-        <select
-          className="h-10 rounded-md border px-2"
-          value={modelo}
-          onChange={(e) => setModelo(e.target.value)}
-        >
-          <option value="">Todos los modelos</option>
-          {modelos.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
         <div className="text-sm text-gray-500 self-center">{rows.length} resultados</div>
       </div>
 
@@ -142,16 +179,17 @@ export default function StockList() {
         <table className="min-w-full text-sm">
           <thead className="bg-gray-100 text-xs uppercase text-gray-600">
             <tr>
-              <Th>etapa</Th>
-              <Th>codigo</Th>
-              <Th>modelo</Th>
-              <Th className="text-right">precio cuh</Th>
-              <Th>partida</Th>
-              <Th>MZ</Th>
-              <Th>LT</Th>
-              <Th>ubicación</Th>
-              <Th className="text-right">área</Th>
-              <Th className="text-right">promotor</Th>
+              <ThButton onClick={() => toggleSort('etapa')}>etapa {arrow('etapa')}</ThButton>
+              <ThButton onClick={() => toggleSort('codigo_cuh')}>codigo {arrow('codigo_cuh')}</ThButton>
+              <ThButton onClick={() => toggleSort('modelo')}>modelo {arrow('modelo')}</ThButton>
+              <ThButton onClick={() => toggleSort('tipo')}>tipo {arrow('tipo')}</ThButton>
+              <ThButton onClick={() => toggleSort('precio_cuh')} right>precio cuh {arrow('precio_cuh')}</ThButton>
+              <ThButton onClick={() => toggleSort('partida')}>partida {arrow('partida')}</ThButton>
+              <ThButton onClick={() => toggleSort('manzana')}>MZ {arrow('manzana')}</ThButton>
+              <ThButton onClick={() => toggleSort('lote')}>LT {arrow('lote')}</ThButton>
+              <ThButton onClick={() => toggleSort('ubicacion')}>ubicación {arrow('ubicacion')}</ThButton>
+              <ThButton onClick={() => toggleSort('area_lote')} right>área {arrow('area_lote')}</ThButton>
+              <Th>promotor</Th>
               <Th>geo</Th>
               <Th>estado</Th>
               <Th>promotor</Th>
@@ -161,39 +199,16 @@ export default function StockList() {
           <tbody className="divide-y">
             {rows.map((r, i) => {
               const res = reservaByCuh.get(r.id) || null;
-              const promotorName = res ? formatProfileName(promotores[res.promotor_id]) : '';
-              const clienteName = res
-                ? formatClienteName(clients.find((c) => c.id === res.cliente_id) || null)
-                : '';
-              const sep = !!res;
-
+              const cliente = res ? clients.find((c) => c.id === res.cliente_id) || null : null;
+              const promotor = res ? promotores[res.promotor_id] || null : null;
               return (
-                <tr key={r.codigo_cuh + i} className={sep ? 'bg-rose-50' : 'hover:bg-gray-50'}>
-                  <Td>{r.etapa}</Td>
-                  <Td className="font-mono">{r.codigo_cuh}</Td>
-                  <Td>{r.modelo}</Td>
-                  <Td className="text-right">{money(r.precio_cuh)}</Td>
-                  <Td className="font-mono">{r.partida}</Td>
-                  <Td>{r.manzana}</Td>
-                  <Td>{r.lote}</Td>
-                  <Td>{r.ubicacion || ''}</Td>
-                  <Td className="text-right">{r.area_lote ?? ''}</Td>
-                  <Td className="text-right">
-                    {r.precio_promotor != null ? money(r.precio_promotor) : ''}
-                  </Td>
-                  <Td>{r.lat && r.lng ? '📍' : ''}</Td>
-                  <Td>
-                    {sep ? (
-                      <span className="rounded bg-rose-600 px-2 py-0.5 text-[10px] font-semibold text-white">
-                        RESERVADA
-                      </span>
-                    ) : (
-                      ''
-                    )}
-                  </Td>
-                  <Td>{promotorName}</Td>
-                  <Td>{clienteName}</Td>
-                </tr>
+                <Row
+                  key={r.codigo_cuh + i}
+                  cuh={r}
+                  reserva={res}
+                  cliente={cliente}
+                  promotor={promotor}
+                />
               );
             })}
           </tbody>
@@ -203,10 +218,91 @@ export default function StockList() {
   );
 }
 
-function Th({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <th className={`px-2 py-2 ${className}`}>{children}</th>;
+function Row({
+  cuh,
+  reserva,
+  cliente,
+  promotor,
+}: {
+  cuh: Cuh;
+  reserva: Reserva | null;
+  cliente: Cliente | null;
+  promotor: Profile | null;
+}) {
+  const promotorName = formatProfileName(promotor);
+  const clienteName = formatClienteName(cliente);
+
+  let estadoCell: React.ReactNode = '';
+  let rowColor = '';
+  if (reserva) {
+    if (reserva.estado === 'reservado') {
+      const { label } = useCountdown(reserva.expires_at);
+      estadoCell = (
+        <div className="flex flex-col items-start">
+          <span className="rounded bg-amber-600 px-2 py-0.5 text-[14px] font-semibold text-white">
+            RESERVADA
+          </span>
+          <span className="text-[14px] text-amber-800">
+            {label}
+          </span>
+        </div>
+
+      );
+      rowColor = 'bg-amber-50';
+    } else {
+      estadoCell = (
+        <span className="rounded bg-rose-600 px-2 py-0.5 text-[10px] font-semibold text-white">SEPARADA</span>
+      );
+      rowColor = 'bg-rose-50';
+    }
+  }
+
+  return (
+    <tr className={rowColor || 'hover:bg-gray-50'}>
+      <Td>{cuh.etapa}</Td>
+      <Td className="font-mono">{cuh.codigo_cuh}</Td>
+      <Td>{cuh.modelo}</Td>
+      <Td>{cuh.tipo === 1 ? 'Casa' : 'Terreno'}</Td>
+      <Td className="text-right">{money(cuh.precio_cuh)}</Td>
+      <Td className="font-mono">{cuh.partida}</Td>
+      <Td>{cuh.manzana}</Td>
+      <Td>{cuh.lote}</Td>
+      <Td>{cuh.ubicacion || ''}</Td>
+      <Td className="text-right">{cuh.area_lote ?? ''}</Td>
+      <Td className="text-right">{cuh.precio_promotor != null ? money(cuh.precio_promotor) : ''}</Td>
+      <Td>{cuh.lat && cuh.lng ? '📍' : ''}</Td>
+      <Td>{estadoCell}</Td>
+      <Td>{promotorName}</Td>
+      <Td>{clienteName}</Td>
+    </tr>
+  );
 }
 
+/* ===== mini UI ===== */
+function Th({ children, right = false }: { children: React.ReactNode; right?: boolean }) {
+  return <th className={`px-2 py-2 ${right ? 'text-right' : ''}`}>{children}</th>;
+}
+function ThButton({
+  children,
+  onClick,
+  right = false,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  right?: boolean;
+}) {
+  return (
+    <th className={`px-2 py-2 ${right ? 'text-right' : ''}`}>
+      <button
+        onClick={onClick}
+        className="inline-flex items-center gap-1 rounded px-1 py-0.5 hover:bg-gray-200"
+        title="Ordenar"
+      >
+        {children}
+      </button>
+    </th>
+  );
+}
 function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return <td className={`px-2 py-2 ${className}`}>{children}</td>;
 }
@@ -214,15 +310,13 @@ function Td({ children, className = '' }: { children: React.ReactNode; className
 function money(n: number) {
   return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
-
 function formatProfileName(p?: Profile | null) {
   if (!p) return '';
   const parts = [p.first_name, p.second_name, p.last_name, p.second_last_name].filter(Boolean);
-  return parts.length ? parts.join(' ') : '';
+  return parts.length ? (parts as string[]).join(' ') : '';
 }
-
 function formatClienteName(c?: Cliente | null) {
   if (!c) return '';
   const parts = [c.primer_nombre, c.segundo_nombre, c.primer_apellido, c.segundo_apellido].filter(Boolean);
-  return parts.length ? parts.join(' ') : '';
+  return parts.length ? (parts as string[]).join(' ') : '';
 }

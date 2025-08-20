@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabaseClient";
 
-type CuhRow = {
+export type CuhRow = {
   etapa: number;
   codigo_cuh: string;
   modelo: string;
@@ -8,6 +8,7 @@ type CuhRow = {
   partida: string;
   manzana: number;
   lote: number;
+  tipo: 0 | 1; // 1=casa, 0=terreno
   ubicacion?: string | null;
   area_lote?: number | null;
   precio_promotor?: number | null;

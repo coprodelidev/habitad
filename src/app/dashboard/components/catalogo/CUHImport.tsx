@@ -13,6 +13,7 @@ type CuhRow = {
   partida: string;
   manzana: number;
   lote: number;
+  tipo: 0 | 1; // 1=casa, 0=terreno
   ubicacion?: string | null;
   area_lote?: number | null;
   precio_promotor?: number | null;
@@ -20,7 +21,10 @@ type CuhRow = {
 
 type PreviewRow = CuhRow & { _row?: number; _errors?: string[] };
 
-const REQUIRED: (keyof CuhRow)[] = ['etapa', 'codigo_cuh', 'modelo', 'precio_cuh', 'partida', 'manzana', 'lote'];
+const REQUIRED: (keyof CuhRow)[] = [
+  'etapa', 'codigo_cuh', 'modelo', 'precio_cuh',
+  'partida', 'manzana', 'lote', 'tipo'
+];
 const WANTED = [...REQUIRED, 'ubicacion', 'area_lote', 'precio_promotor'] as (keyof CuhRow)[];
 
 // ========================= utils =========================
@@ -56,6 +60,8 @@ function buildHeaderMap(headerRow: any[]): Record<number, keyof CuhRow> {
       map[i] = 'manzana';
     else if ((n === 'lt') || (n.includes('lote') && !n.includes('area')))
       map[i] = 'lote';
+    else if (n.includes('tipo')) // "tipo", "casa/terreno"
+      map[i] = 'tipo';
     else if (n.includes('esq') || n.includes('parq') || n.includes('ubicacion') || n.includes('esquina'))
       map[i] = 'ubicacion';
     else if ((n.includes('area') && n.includes('lote')) || n === 'area lote' || n === 'area')
@@ -81,7 +87,7 @@ function findHeaderIndex(matrix: any[][]): { idx: number; map: Record<number, ke
     if (!row || isJunkRow(row)) continue;
     const map = buildHeaderMap(row);
     const found = Object.values(map);
-    const ok = found.includes('codigo_cuh') && found.includes('precio_cuh') && found.length >= 4;
+    const ok = found.includes('codigo_cuh') && found.includes('precio_cuh') && found.includes('tipo') && found.length >= 5;
     if (ok) return { idx: i, map };
   }
   return null;
@@ -113,9 +119,19 @@ function parseIntish(v: any): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function parseTipo(v: any): 0 | 1 | null {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') return v === 1 ? 1 : v === 0 ? 0 : null;
+  const s = norm(v);
+  if (s === '1' || s.includes('casa')) return 1;
+  if (s === '0' || s.includes('terr')) return 0;
+  return null;
+}
+
 function isValidRow(r: PreviewRow): boolean {
   return REQUIRED.every((k) => {
     const v = r[k];
+    if (k === 'tipo') return v === 0 || v === 1;
     if (typeof v === 'number') return Number.isFinite(v);
     return !!v;
   });
@@ -184,6 +200,8 @@ export default function CUHImport() {
       const row = matrix[r];
       if (!row || isJunkRow(row) || row.every((c: any) => String(c || '').trim() === '')) continue;
 
+      const tipoParsed = parseTipo(row[getKey(headerMap, 'tipo')]);
+
       const obj: PreviewRow = {
         etapa: parseIntish(row[getKey(headerMap, 'etapa')]) ?? NaN,
         codigo_cuh: safeText(row[getKey(headerMap, 'codigo_cuh')]),
@@ -192,6 +210,7 @@ export default function CUHImport() {
         partida: safeText(row[getKey(headerMap, 'partida')]),
         manzana: parseIntish(row[getKey(headerMap, 'manzana')]) ?? NaN,
         lote: parseIntish(row[getKey(headerMap, 'lote')]) ?? NaN,
+        tipo: (tipoParsed ?? (0 as 0 | 1)), // si falta, por seguridad asume 0=terreno
         ubicacion: safeText(row[getKey(headerMap, 'ubicacion')])?.toUpperCase() || null,
         area_lote: parseMoney(row[getKey(headerMap, 'area_lote')]),
         precio_promotor: parseMoney(row[getKey(headerMap, 'precio_promotor')]),
@@ -203,7 +222,9 @@ export default function CUHImport() {
         const errs: string[] = [];
         REQUIRED.forEach((k) => {
           const v = obj[k];
-          if (typeof v === 'number' && !Number.isFinite(v)) errs.push(k);
+          if (k === 'tipo') {
+            if (!(v === 0 || v === 1)) errs.push('tipo');
+          } else if (typeof v === 'number' && !Number.isFinite(v)) errs.push(k);
           else if (!v) errs.push(k);
         });
         obj._errors = errs;
@@ -235,6 +256,7 @@ export default function CUHImport() {
         partida: r.partida,
         manzana: r.manzana,
         lote: r.lote,
+        tipo: r.tipo,
         ubicacion: r.ubicacion || null,
         area_lote: r.area_lote == null ? null : Number(r.area_lote),
         precio_promotor: r.precio_promotor == null ? null : Number(r.precio_promotor),
@@ -272,7 +294,7 @@ export default function CUHImport() {
             <p className="mt-1 text-sm text-gray-500">
               Sube un archivo .xlsx, .xls o .csv con las columnas: <br />
               <span className="font-mono text-xs">
-                ETAPA, CÓDIGO CUH, MODELO, PRECIO CUH, PARTIDA, MZ, LT, ESQ.-PARQ., ÁREA LOTE, PRECIO PROMOTOR (opcional)
+                ETAPA, CÓDIGO CUH, MODELO, PRECIO CUH, PARTIDA, MZ, LT, TIPO (1=casa / 0=terreno), ESQ.-PARQ., ÁREA LOTE, PRECIO PROMOTOR (opcional)
               </span>
             </p>
           </div>
@@ -320,7 +342,7 @@ export default function CUHImport() {
               <thead className="bg-gray-50 text-xs uppercase text-gray-600">
                 <tr>
                   <Th>Etapa</Th><Th>Código CUH</Th><Th>Modelo</Th><Th>Precio CUH</Th><Th>Partida</Th>
-                  <Th>Manzana</Th><Th>Lote</Th><Th>Ubicación</Th><Th>Área Lote</Th><Th>Precio Promotor</Th>
+                  <Th>Manzana</Th><Th>Lote</Th><Th>Tipo</Th><Th>Ubicación</Th><Th>Área Lote</Th><Th>Precio Promotor</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -333,6 +355,7 @@ export default function CUHImport() {
                     <Td className="font-mono">{r.partida}</Td>
                     <Td>{r.manzana}</Td>
                     <Td>{r.lote}</Td>
+                    <Td>{r.tipo === 1 ? 'Casa' : 'Terreno'}</Td>
                     <Td>{r.ubicacion || '-'}</Td>
                     <Td className="text-right">{r.area_lote != null ? r.area_lote : '-'}</Td>
                     <Td className="text-right">{r.precio_promotor != null ? fmtMoney(r.precio_promotor) : '-'}</Td>
@@ -359,7 +382,7 @@ export default function CUHImport() {
               <thead className="bg-amber-100 text-xs uppercase text-amber-900">
                 <tr>
                   <Th>#Fila</Th><Th>Etapa</Th><Th>Código CUH</Th><Th>Modelo</Th><Th>Precio CUH</Th>
-                  <Th>Partida</Th><Th>Manzana</Th><Th>Lote</Th><Th>Errores</Th>
+                  <Th>Partida</Th><Th>Manzana</Th><Th>Lote</Th><Th>Tipo</Th><Th>Errores</Th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-amber-200">
@@ -373,6 +396,7 @@ export default function CUHImport() {
                     <Td className="font-mono">{r.partida}</Td>
                     <Td>{asText(r.manzana)}</Td>
                     <Td>{asText(r.lote)}</Td>
+                    <Td>{r.tipo === 1 ? 'Casa' : r.tipo === 0 ? 'Terreno' : '-'}</Td>
                     <Td className="text-amber-900">{r._errors?.join(', ')}</Td>
                   </tr>
                 ))}
