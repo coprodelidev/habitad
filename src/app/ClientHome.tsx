@@ -11,11 +11,8 @@ import { Testimonials } from '@/components/Testimonials';
 export default function ClientHome() {
   return (
     <>
-      <Hero />
       <Nav />
-
-     
-
+      <Hero />
       <SectionInfo />
       <Testimonials />
       <InfoCards />
