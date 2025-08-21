@@ -329,6 +329,31 @@ export async function listPagos(reservaId: string, stage?: PagoStage): Promise<P
   }
 }
 
+/** Inserta UNA fila de pago con `stage` (sin re-subir archivo). */
+async function insertPagoRow(
+  reservaId: string,
+  stage: PagoStage,
+  amount: number,
+  file_path: string | null
+): Promise<Pago> {
+  await must(
+    (supabase as any)
+      .from("payments")
+      .insert({ reserva_id: reservaId, stage, amount, file_path } as any)
+  );
+
+  const data = await must<any[]>(
+    (supabase as any)
+      .from("payments")
+      .select("id, reserva_id, stage, amount, file_path, created_at")
+      .eq("reserva_id", reservaId)
+      .eq("stage", stage)
+      .order("created_at", { ascending: false })
+      .limit(1)
+  );
+  return (data && data[0]) as Pago;
+}
+
 export async function addPago(
   reservaId: string,
   stage: PagoStage,
@@ -353,18 +378,9 @@ export async function addPago(
   const supported = await ensureStageSupport();
 
   if (supported) {
-    await must((supabase as any).from("payments").insert({ reserva_id: reservaId, stage, amount, file_path } as any));
-    const data = await must<any[]>(
-      (supabase as any)
-        .from("payments")
-        .select("id, reserva_id, stage, amount, file_path, created_at")
-        .eq("reserva_id", reservaId)
-        .eq("stage", stage)
-        .order("created_at", { ascending: false })
-        .limit(1)
-    );
-    return (data && data[0]) as Pago;
+    return insertPagoRow(reservaId, stage, amount, file_path);
   } else {
+    // fallback histórico sin stage
     await must((supabase as any).from("payments").insert({ reserva_id: reservaId, amount, file_path } as any));
     const data = await must<any[]>(
       (supabase as any)
@@ -386,6 +402,67 @@ export async function addPago(
   }
 }
 
+/**
+ * Asigna automáticamente un pago a las etapas en orden:
+ *   Reserva -> Inicial -> Final
+ * Devuelve las partes insertadas y un posible excedente NO registrado.
+ */
+export async function addPagoDistribuido(
+  reserva: Reserva,
+  amount: number,
+  file?: File | null
+): Promise<{ parts: Array<{ stage: PagoStage; amount: number; pago: Pago }>; excedente: number }> {
+  if (!(amount > 0)) throw new Error("Monto inválido");
+  const supported = await ensureStageSupport();
+  if (!supported) {
+    // Sin `stage` en BD, no podemos prorratear contablemente por etapas
+    const pago = await addPago(reserva.id, "reserva", amount, file);
+    return { parts: [{ stage: "reserva", amount, pago }], excedente: 0 };
+  }
+
+  // 1) Subir el comprobante UNA sola vez (si viene archivo)
+  let file_path: string | null = null;
+  if (file) {
+    if (!storage) throw new Error("Supabase Storage no disponible en este cliente.");
+    const key = `${reserva.id}/auto/${Date.now()}_${file.name}`;
+    const up = await storage.from(BUCKET_PAYMENTS).upload(key, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: (file as any).type || "application/pdf",
+    });
+    if (up?.error) throw up.error;
+    file_path = key;
+  }
+
+  // 2) Calcular restante por etapa
+  const { resumen } = await getResumenPagos(reserva);
+  const restante = {
+    reserva: Math.max(0, Number(resumen.reserva.restante || 0)),
+    inicial: Math.max(0, Number(resumen.inicial.restante || 0)),
+    final:   Math.max(0, Number(resumen.final.restante   || 0)),
+  };
+  const order: PagoStage[] = ["reserva", "inicial", "final"];
+
+  // 3) Reparto
+  let disponible = amount;
+  const parts: Array<{ stage: PagoStage; amount: number; pago: Pago }> = [];
+
+  for (const st of order) {
+    if (disponible <= 0) break;
+    const toUse = Math.min(restante[st], disponible);
+    if (toUse > 0) {
+      const pago = await insertPagoRow(reserva.id, st, toUse, file_path);
+      parts.push({ stage: st, amount: toUse, pago });
+      disponible -= toUse;
+    }
+  }
+
+  // 4) Excedente si sobró por encima del objetivo total restante
+  const excedente = Math.max(0, disponible);
+
+  return { parts, excedente };
+}
+
 export async function getSignedUrlFromPayments(path: string, expiresInSeconds = 3600): Promise<string> {
   if (!storage) throw new Error("Supabase Storage no disponible en este cliente.");
   const { data, error } = await storage.from(BUCKET_PAYMENTS).createSignedUrl(path, expiresInSeconds);
@@ -395,12 +472,15 @@ export async function getSignedUrlFromPayments(path: string, expiresInSeconds = 
 
 /**
  * ✅ Resumen por etapas
+ *   - Reserva: objetivo = required_amount (de la reserva)
+ *   - Inicial: objetivo = 5% del precio_cuh
+ *   - Final:   objetivo = precio_cuh - objetivoInicial
  */
 export async function getResumenPagos(reserva: Reserva): Promise<{
   resumen: {
     reserva: { objetivo: number; pagado: number; restante: number; pagos: Pago[] };
     inicial: { objetivo: number; pagado: number; restante: number; pagos: Pago[] };
-    final: { objetivo: number; pagado: number; restante: number; pagos: Pago[] };
+    final:   { objetivo: number; pagado: number; restante: number; pagos: Pago[] };
   };
   etapaActual: PagoStage | "completado";
 }> {
@@ -408,7 +488,7 @@ export async function getResumenPagos(reserva: Reserva): Promise<{
   const precio = Number(propiedad?.precio_cuh ?? 0);
   const objetivoInicial = Math.round(precio * 0.05 * 100) / 100;
   const objetivoReserva = Number(reserva.required_amount ?? 0);
-  const objetivoFinal = Math.max(0, precio - objetivoInicial);
+  const objetivoFinal   = Math.max(0, precio - objetivoInicial);
 
   const [pagosRes, pagosIni, pagosFin] = await Promise.all([
     listPagos(reserva.id, "reserva"),
@@ -435,7 +515,7 @@ export async function getResumenPagos(reserva: Reserva): Promise<{
     resumen: {
       reserva: { objetivo: objetivoReserva, pagado: pagadoRes, restante: restanteRes, pagos: pagosRes },
       inicial: { objetivo: objetivoInicial, pagado: pagadoIni, restante: restanteIni, pagos: pagosIni },
-      final: { objetivo: objetivoFinal, pagado: pagadoFin, restante: restanteFin, pagos: pagosFin },
+      final:   { objetivo: objetivoFinal,   pagado: pagadoFin, restante: restanteFin, pagos: pagosFin },
     },
     etapaActual,
   };

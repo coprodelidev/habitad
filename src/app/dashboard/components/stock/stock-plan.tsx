@@ -363,7 +363,7 @@ function ManzanaBlock({
                     <div className="pointer-events-none absolute inset-0 flex flex-col items-end justify-between p-1">
                       {isSeparada ? (
                         <span className="rounded bg-rose-600 px-2 py-0.5 text-[10px] font-semibold text-white shadow">
-                          SEPARADA
+                          RESERVADA
                         </span>
                       ) : (
                         <div className="flex flex-col items-end gap-1 mt-14">
@@ -514,7 +514,7 @@ function FichaModal({
 
                 {isSeparada && (
                   <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
-                    Ya separada por <span className="font-semibold">{nombrePromotor}</span>.
+                    Ya RESERVADA por <span className="font-semibold">{nombrePromotor}</span>.
                   </div>
                 )}
 
@@ -530,7 +530,7 @@ function FichaModal({
                       isSeparada ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700',
                     ].join(' ')}
                   >
-                    Separar
+                    RESERVAR
                   </button>
                 </div>
               </>

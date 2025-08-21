@@ -8,11 +8,13 @@ import {
   uploadDocumento,
   getDocumento,
   addPago,
+  addPagoDistribuido,   // << NUEVO
   getResumenPagos,
   type GestionPagoRow,
   type DocumentoTipo,
   type Pago,
   type PagoStage,
+  type Reserva,
 } from "./gestionPagosService";
 
 /* =============== UI utils =============== */
@@ -93,6 +95,7 @@ export default function GestionPagosPage() {
   const [stage, setStage] = useState<PagoStage>("reserva");
   const [amount, setAmount] = useState<string>("");
   const [voucher, setVoucher] = useState<File | null>(null);
+  const [autoDistribuir, setAutoDistribuir] = useState(true); // << NUEVO
 
   // Toast
   const [toast, setToast] = useState<string | null>(null);
@@ -171,17 +174,39 @@ export default function GestionPagosPage() {
     if (!current) return;
     const val = Number(amount);
     if (!isFinite(val) || val <= 0) return alert("Ingresa un monto válido");
+
     setUploading(true);
     try {
-      await addPago(current.reserva.id, stage, val, voucher || undefined);
-      const res = await getResumenPagos(current.reserva);
-      setResumen(res.resumen);
-      setEtapaActual(res.etapaActual);
-      setStage(res.etapaActual === "completado" ? "final" : res.etapaActual);
-      setAmount("");
-      setVoucher(null);
-      setToast(`Pago registrado en etapa ${stage}.`);
-      setTimeout(() => setToast(null), 3000);
+      if (autoDistribuir) {
+        // Reparto secuencial: Reserva -> Inicial -> Final
+        const { parts, excedente } = await addPagoDistribuido(current.reserva, val, voucher || undefined);
+        // Refrescar resumen
+        const res = await getResumenPagos(current.reserva);
+        setResumen(res.resumen);
+        setEtapaActual(res.etapaActual);
+        setStage(res.etapaActual === "completado" ? "final" : res.etapaActual);
+        setAmount("");
+        setVoucher(null);
+
+        const resumenParts = parts.map(p => `${p.stage}: $${fmt(p.amount)}`).join(" | ");
+        let msg = `Pago distribuido → ${resumenParts}.`;
+        if (excedente > 0) {
+          msg += ` Excedente no registrado: $${fmt(excedente)}.`;
+        }
+        setToast(msg);
+        setTimeout(() => setToast(null), 4000);
+      } else {
+        // Modo manual: una sola etapa
+        await addPago(current.reserva.id, stage, val, voucher || undefined);
+        const res = await getResumenPagos(current.reserva);
+        setResumen(res.resumen);
+        setEtapaActual(res.etapaActual);
+        setStage(res.etapaActual === "completado" ? "final" : res.etapaActual);
+        setAmount("");
+        setVoucher(null);
+        setToast(`Pago registrado en etapa ${stage}.`);
+        setTimeout(() => setToast(null), 3000);
+      }
     } catch (e: any) {
       alert(`Error: ${e?.message || e}`);
     } finally {
@@ -418,8 +443,13 @@ export default function GestionPagosPage() {
         )}
       </Modal>
 
-      {/* Modal: Editar/Reemplazar documento (aparece con ✏️) */}
-      <Modal open={docEdit.open} onClose={() => setDocEdit({ open: false, reservaId: null, tipo: null, title: "", exists: false })} title={docEdit.title || "Documento"} scroll>
+      {/* Modal: Editar/Reemplazar documento */}
+      <Modal
+        open={docEdit.open}
+        onClose={() => setDocEdit({ open: false, reservaId: null, tipo: null, title: "", exists: false })}
+        title={docEdit.title || "Documento"}
+        scroll
+      >
         {!docEdit.open || !docEdit.tipo || !docEdit.reservaId ? (
           <p className="text-sm text-gray-500">Cargando…</p>
         ) : (
@@ -498,29 +528,31 @@ export default function GestionPagosPage() {
               </div>
             </div>
 
-            {/* Stepper */}
-            <Stepper etapa={etapaActual} />
-
-            {/* Tarjetas de progreso */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <StageCard title="Reserva" color="emerald" objetivo={resumen.reserva.objetivo} pagado={resumen.reserva.pagado} />
-              <StageCard title="Cuota inicial (5%)" color="sky" objetivo={resumen.inicial.objetivo} pagado={resumen.inicial.pagado} />
-              <StageCard title="Cuotas finales" color="violet" objetivo={resumen.final.objetivo} pagado={resumen.final.pagado} />
-            </div>
-
-            {/* Registrar pago */}
+            {/* Controles de registro */}
             <div className="rounded-2xl border bg-gray-50 p-4">
               <h4 className="mb-3 font-medium">Registrar pago</h4>
               <div className="flex flex-wrap items-center gap-3">
-                <select
-                  value={stage}
-                  onChange={(e) => setStage(e.target.value as PagoStage)}
-                  className="rounded border px-3 py-2 text-sm"
-                >
-                  <option value="reserva">Reserva</option>
-                  <option value="inicial">Cuota inicial</option>
-                  <option value="final">Cuotas finales</option>
-                </select>
+                <label className="mr-2 inline-flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={autoDistribuir}
+                    onChange={(e) => setAutoDistribuir(e.target.checked)}
+                  />
+                  Asignar automáticamente (secuencial)
+                </label>
+
+                {!autoDistribuir && (
+                  <select
+                    value={stage}
+                    onChange={(e) => setStage(e.target.value as PagoStage)}
+                    className="rounded border px-3 py-2 text-sm"
+                  >
+                    <option value="reserva">Reserva</option>
+                    <option value="inicial">Cuota inicial</option>
+                    <option value="final">Cuotas finales</option>
+                  </select>
+                )}
+
                 <input
                   type="number"
                   placeholder="Monto"
@@ -534,10 +566,23 @@ export default function GestionPagosPage() {
                   disabled={uploading}
                   className="rounded bg-emerald-600 px-4 py-2 text-white text-sm hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  {uploading ? "Guardando…" : "Subir comprobante"}
+                  {uploading ? "Guardando…" : "Registrar"}
                 </button>
               </div>
-              <p className="mt-1 text-xs text-gray-500">El comprobante (PDF) es opcional.</p>
+              <p className="mt-1 text-xs text-gray-500">
+                Si está activo el “Asignar automáticamente”, el sistema cubrirá Reserva → Inicial → Final con el monto
+                ingresado. El excedente (si lo hay) no se registra.
+              </p>
+            </div>
+
+            {/* Stepper (estado) */}
+            <Stepper etapa={etapaActual} />
+
+            {/* Tarjetas de progreso */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <StageCard title="Reserva" color="emerald" objetivo={resumen.reserva.objetivo} pagado={resumen.reserva.pagado} />
+              <StageCard title="Cuota inicial (5%)" color="sky" objetivo={resumen.inicial.objetivo} pagado={resumen.inicial.pagado} />
+              <StageCard title="Cuotas finales" color="violet" objetivo={resumen.final.objetivo} pagado={resumen.final.pagado} />
             </div>
 
             {/* Listas por etapa */}
@@ -639,16 +684,9 @@ function DocHeaderCell({
             onClick={onPencil}
             className="inline-flex items-center gap-2 rounded border px-3 py-2 text-xs hover:bg-gray-50"
           >
-            {/* Icono lápiz (inline SVG para no depender de librerías) */}
             <svg width="14" height="14" viewBox="0 0 24 24" className="opacity-80" aria-hidden>
-              <path
-                d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"
-                fill="currentColor"
-              />
-              <path
-                d="M20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z"
-                fill="currentColor"
-              />
+              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="currentColor" />
+              <path d="M20.71 7.04a1.003 1.003 0 0 0 0-1.42l-2.34-2.34a1.003 1.003 0 0 0-1.42 0l-1.83 1.83 3.75 3.75 1.84-1.82z" fill="currentColor" />
             </svg>
             <span>Editar</span>
           </button>

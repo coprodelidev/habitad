@@ -251,7 +251,7 @@ function Row({
       rowColor = 'bg-amber-50';
     } else {
       estadoCell = (
-        <span className="rounded bg-rose-600 px-2 py-0.5 text-[10px] font-semibold text-white">SEPARADA</span>
+        <span className="rounded bg-rose-600 px-2 py-0.5 text-[10px] font-semibold text-white">RESERVADA</span>
       );
       rowColor = 'bg-rose-50';
     }
