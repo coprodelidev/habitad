@@ -6,7 +6,13 @@ import Link from 'next/link';
 import HeroAuthBar from './auth/HeroAuthBar';
 
 export default function Hero() {
-  const slides = ['/images/slider1.jpg', '/images/slider2.jpg', '/images/slider3.jpg'];
+  const slides = [
+    '/images/slider-0.jpg',
+    '/images/slider-1.jpeg',
+    '/images/slider-2.jpeg',
+    '/images/slider-3.jpeg',
+    '/images/slider-4.jpeg',
+  ];
   const [i, setI] = useState(0);
 
   useEffect(() => {
@@ -32,7 +38,7 @@ export default function Hero() {
 
       {/* LOGO arriba a la izquierda */}
       <div className="absolute left-6 top-6 z-20">
-        <Link href="/" aria-label="Ir al inicio" className="block">
+        <Link href="https://www.coprodeli.org" aria-label="Ir al inicio" className="block">
           <div className="rounded-3xl bg-white p-4 md:p-5 shadow-lg ring-1 ring-slate-200/80">
             <Image
               src="/images/logo.jpg"
@@ -48,22 +54,15 @@ export default function Hero() {
 
       {/* Auth bar: arriba a la derecha */}
       <div className="absolute right-6 top-6 z-20">
-        <nav
-          aria-label="Acceso"
-          className="inline-flex items-center gap-1  p-1.5
-                    
-                     "
-        >
-
+        <nav aria-label="Acceso" className="inline-flex items-center gap-1 p-1.5">
           <HeroAuthBar />
-
         </nav>
       </div>
 
       {/* Contenido alineado a la derecha */}
       <div className="w-full max-w-[1200px] px-6 pb-10 pt-8 text-right md:pb-24 md:pt-14">
         <h1 className="mb-3 text-2xl font-extrabold leading-[1.05] sm:text-2xl md:text-2xl lg:text-4xl">
-          Donde empieza tu historia,<br />empieza tu hogar
+          CONSTRUIMOS COMUNIDADES ,<br /> A minutos del centro de Ica
         </h1>
 
         <p className="mb-4 text-lg md:text-2xl">
@@ -72,7 +71,7 @@ export default function Hero() {
 
         <div className="mt-4 flex items-center justify-end gap-3">
           <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold md:text-base">
-            <span>📍</span> A solo minutos de Lima
+            <span>📍</span> A solo minutos de Ica
           </span>
           <button
             type="button"

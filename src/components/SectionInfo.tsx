@@ -11,11 +11,11 @@ const SectionInfo: React.FC = () => {
           <h2 className="mb-[18px] pl-3 text-[clamp(28px,4.2vw,44px)] font-extrabold leading-[1.05] text-[#0E08C9]">
             Descubre lo que tenemos para
             <br className="hidden md:block" />
-            cumplir tus sueños
+            tu familia
           </h2>
 
           <Image
-            src="/images/slider1.jpg"
+            src="/images/descubre-familia.jpg"
             alt="familia"
             width={1200}
             height={430}
@@ -27,7 +27,7 @@ const SectionInfo: React.FC = () => {
         {/* Card derecha: imagen + texto abajo */}
         <article className="overflow-hidden rounded-[22px] bg-white shadow-[0_24px_48px_rgba(16,24,40,.18)]">
           <Image
-            src="/images/slider2.jpg"
+            src="/images/areasverdes.jpg"
             alt="Proyecto destacado"
             width={800}
             height={480}

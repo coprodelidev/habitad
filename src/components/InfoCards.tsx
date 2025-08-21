@@ -16,7 +16,7 @@ export default function InfoCards() {
         />
         <div className="absolute inset-0 bg-black/30" />
         <div className="relative z-10 flex flex-col items-center">
-          <h3 className="text-[22px] font-extrabold">Lorem ipsum dolor sit amet</h3>
+          <h3 className="text-[22px] font-extrabold">ICa san</h3>
           <div className="my-5 rounded-[12px] border-2 border-white px-5 py-2 text-2xl font-extrabold">
             Lorem
           </div>

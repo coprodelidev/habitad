@@ -19,7 +19,7 @@ const Nav: React.FC = () => {
   const subItems = [
     'Ica San Fernando',
     'Ica el Huarango',
-    'Casas y Lotes',
+    'Casas y Lotes entrega inmediata',
     'Pisco Condominio',
     'Ica San Bernardo',
   ];
@@ -80,8 +80,6 @@ const Nav: React.FC = () => {
 
             <Link href="#" className={inactivePill}>Proveedores y Contratistas</Link>
             <Link href="#" className={inactivePill}>Trabaja con nosotros</Link>
-            <Link href="#" className={inactivePill}>Camposanto</Link>
-            <Link href="#" className={inactivePill}>Construcción para terceros</Link>
             <Link href="#" className={inactivePill}>Preguntas frecuentes</Link>
           </div>
 

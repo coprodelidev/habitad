@@ -19,7 +19,7 @@ const ReferAndWin: React.FC = () => {
       <div className="mx-auto max-w-[1200px] px-5">
         <div className="max-w-[640px] rounded-[28px] bg-white px-[34px] py-8 shadow-[0_24px_48px_rgba(16,24,40,.18)] md:ml-12">
           <h2 className="mb-2 text-[32px] font-extrabold leading-[1.05] text-[#0E08C9] md:text-[40px]">
-            ¡Refiere y gana!
+            ¡Recomienda y gana!
           </h2>
           <p className="mb-6 text-[18px] font-extrabold text-[#0b1324] md:text-[20px]">
             Lorem ipsum dolor sit amet
