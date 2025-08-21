@@ -16,22 +16,30 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
 
   return (
     <UserProvider>
-      <div className="flex min-h-screen flex-col">
-        <header className="p-4 border-b bg-[rgb(14,8,201)] text-white">
-          <button onClick={toggleMenu} className="p-2" aria-label="Toggle menu">
-            <MenuIcon className="h-6 w-6" />
-          </button>
-        </header>
-        <div className="flex flex-1 flex-col md:flex-row">
+      <div className="flex min-h-screen">
+        {/* Contenedor del menú con posición relativa para el botón absoluto */}
+        <div className="relative ">
           {isMenuOpen && (
-            <aside className="w-full md:w-[15%] bg-[rgb(14,8,201)]">
+            <aside className="pt-20 fixed inset-y-0 left-0 w-64 bg-[rgb(14,8,201)] h-full">
               <Menu />
             </aside>
           )}
-          <main className={`flex-1 p-4 ${isMenuOpen ? 'md:w-[85%]' : 'w-full'} bg-gray-50`}>
-            {children}
-          </main>
+          
+          {/* Botón de menú flotante sobre el menú */}
+          <button
+            onClick={toggleMenu}
+            className={`fixed top-4 left-4 z-50 p-2 rounded-md transition-colors ${isMenuOpen ? 'bg-white text-blue-700' : 'bg-blue-700 text-white border border-gray-300'}`}
+            aria-label="Toggle menu"
+          >
+            <MenuIcon className="h-6 w-6" />
+          </button>
         </div>
+        
+        <main className={`flex-1 p-4 transition-all duration-300 ${isMenuOpen ? 'md:ml-64' : 'ml-0'} bg-gray-50 min-h-screen`}>
+          <div className="mt-16"> {/* Espacio para el botón flotante */}
+            {children}
+          </div>
+        </main>
       </div>
     </UserProvider>
   );

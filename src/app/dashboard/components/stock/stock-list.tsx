@@ -190,7 +190,7 @@ export default function StockList() {
               <ThButton onClick={() => toggleSort('ubicacion')}>ubicación {arrow('ubicacion')}</ThButton>
               <ThButton onClick={() => toggleSort('area_lote')} right>área {arrow('area_lote')}</ThButton>
               <Th>promotor</Th>
-              <Th>geo</Th>
+            
               <Th>estado</Th>
               <Th>promotor</Th>
               <Th>cliente</Th>
