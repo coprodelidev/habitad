@@ -39,14 +39,14 @@ export default function Hero() {
       {/* LOGO arriba a la izquierda */}
       <div className="absolute left-6 top-6 z-20">
         <Link href="https://www.coprodeli.org" aria-label="Ir al inicio" className="block">
-          <div className="rounded-3xl bg-white p-4 md:p-5 shadow-lg ring-1 ring-slate-200/80">
+          <div className="rounded-3xl bg-white p-4 md:p-5 shadow-lg ring-1 ring-slate-120/80">
             <Image
               src="/images/logo.jpg"
               alt="Habitat"
-              width={180}
-              height={140}
+              width={120}
+              height={80}
               priority
-              className="block w-[180px] md:w-[140px] h-auto"
+              className="block w-[160px] md:w-[120px] h-auto"
             />
           </div>
         </Link>

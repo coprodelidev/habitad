@@ -15,7 +15,6 @@ export default function ClientHome() {
       <Hero />
       <SectionInfo />
       <Testimonials />
-      <InfoCards />
       <ReferAndWin />
       <Footer />
     </>
