@@ -101,15 +101,15 @@ const Nav: React.FC = () => {
             </div>
 
             {/* NUEVOS ÍTEMS */}
-            <Link href="/construimos-y-terceros" className={inactivePill}>
+            <Link href="/construimos" className={inactivePill}>
               Construimos y Terceros
             </Link>
-            <Link href="/terrenos-y-casas-en-espana" className={inactivePill}>
+            <Link href="/terrenosSpain" className={inactivePill}>
               Terrenos y casas en España
             </Link>
 
-            <Link href="" className={inactivePill}>Proveedores y Contratistas</Link>
-            <Link href="#" className={inactivePill}>Trabaja con nosotros</Link>
+            <Link href="/proveedores-contratistas" className={inactivePill}>Proveedores y Contratistas</Link>
+            <Link href="/trabaja-con-nosotros" className={inactivePill}>Trabaja con nosotros</Link>
           </div>
         </div>
       </div>
