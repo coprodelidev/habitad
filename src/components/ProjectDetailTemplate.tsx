@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 
 export type FeatureItem = { label: string; Icon: LucideIcon };
@@ -9,7 +9,6 @@ export type FeatureItem = { label: string; Icon: LucideIcon };
 export type RelatedProject = {
   id: string;
   cover: string;
-  /** Usamos el nombre tal como aparece en el menú superior (region). */
   title: string;
   subtitle?: string;
   location?: string;
@@ -28,15 +27,12 @@ export type ProjectDetailTemplateProps = {
   cashPriceLabel?: string;
   description?: string;
   features: FeatureItem[];
-  /** URL de YouTube (watch o youtu.be). Si no se pasa, usamos el default con autoplay. */
+  /** URL de YouTube (watch o youtu.be). */
   videoUrl?: string;
   /** URL de Google Maps Embed. */
   mapEmbedUrl?: string;
-  /** Identificador del proyecto actual para excluirlo en la lista inferior. */
   currentId?: string;
-  /** También excluimos por título (region) si lo pasas. */
   currentTitle?: string;
-  /** Todos los condominios del sitio (para mostrar debajo del mapa). */
   condominios?: RelatedProject[];
   onSelectCondominio?: (id: string) => void;
   onClose?: () => void;
@@ -66,14 +62,15 @@ function buildYouTubeEmbedSrc(videoUrl?: string) {
   } catch {}
   const params = new URLSearchParams({
     autoplay: '1',
-    mute: '1',
+    mute: '1',             // inicia silenciado por políticas de navegador
     loop: '1',
-    playlist: id,
+    playlist: id,          // requerido para loop
     controls: '0',
     modestbranding: '1',
     rel: '0',
     playsinline: '1',
     start: String(start),
+    enablejsapi: '1',      // para poder activar audio vía postMessage
   });
   return `https://www.youtube.com/embed/${id}?${params.toString()}`;
 }
@@ -124,6 +121,20 @@ export default function ProjectDetailTemplate({
 }: ProjectDetailTemplateProps) {
   const ytSrc = buildYouTubeEmbedSrc(videoUrl);
   const mapSrc = mapEmbedUrl || DEFAULT_MAP_EMBED;
+
+  // Audio toggle
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [showUnmute, setShowUnmute] = useState(true);
+  const unmute = () => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    const send = (func: string, args: any[] = []) =>
+      win.postMessage(JSON.stringify({ event: 'command', func, args }), '*');
+    send('unMute');
+    send('setVolume', [100]);
+    send('playVideo');
+    setShowUnmute(false);
+  };
 
   // Excluir el actual (por id o por el título/region)
   const otrosCondominios = (condominios || []).filter(
@@ -184,7 +195,10 @@ export default function ProjectDetailTemplate({
           <h3 className="mb-3 text-lg font-extrabold text-[#0b1324]">Características</h3>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             {features.map(({ label, Icon }) => (
-              <div key={label} className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-[#eef6ff] p-5 text-center">
+              <div
+                key={label}
+                className="flex flex-col items-center justify-center gap-3 rounded-2xl bg-[#eef6ff] p-5 text-center"
+              >
                 <Icon className="h-10 w-10 text-[#0E08C9]" strokeWidth={2.5} />
                 <span className="text-sm font-semibold text-[#0b1324]">{label}</span>
               </div>
@@ -197,6 +211,7 @@ export default function ProjectDetailTemplate({
           <h3 className="mb-3 text-lg font-extrabold text-[#0b1324]">Video</h3>
           <div className="relative h-[320px] w-full overflow-hidden rounded-2xl border border-slate-200 shadow md:h-[460px]">
             <iframe
+              ref={iframeRef}
               className="absolute inset-0 h-full w-full"
               src={ytSrc}
               title={`${title} - Video`}
@@ -204,6 +219,16 @@ export default function ProjectDetailTemplate({
               allowFullScreen
               referrerPolicy="strict-origin-when-cross-origin"
             />
+            {showUnmute && (
+              <button
+                type="button"
+                onClick={unmute}
+                className="absolute bottom-4 left-4 rounded-full bg-black/60 px-3 py-2 text-xs text-white backdrop-blur hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-white/60"
+                aria-label="Activar sonido"
+              >
+                Activar sonido 🔊
+              </button>
+            )}
           </div>
         </div>
 
@@ -222,7 +247,21 @@ export default function ProjectDetailTemplate({
           </div>
         </div>
 
-
+        {/* (Opcional) Otros condominios */}
+        {otrosCondominios.length > 0 && (
+          <div>
+            <h3 className="mb-3 text-lg font-extrabold text-[#0b1324]">Condominios</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {otrosCondominios.map((c) => (
+                <RelatedCondoCard
+                  key={c.id}
+                  item={c}
+                  onClick={() => onSelectCondominio?.(c.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

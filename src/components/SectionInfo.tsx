@@ -1,8 +1,25 @@
 'use client';
 
 import Image from 'next/image';
+import { useRef, useState, type FC } from 'react';
 
-const SectionInfo: React.FC = () => {
+const SectionInfo: FC = () => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [showUnmute, setShowUnmute] = useState(true);
+
+  const unmute = () => {
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    const send = (func: string, args: any[] = []) =>
+      win.postMessage(JSON.stringify({ event: 'command', func, args }), '*');
+
+    // Habilita sonido y asegura reproducción
+    send('unMute');
+    send('setVolume', [100]);
+    send('playVideo');
+    setShowUnmute(false);
+  };
+
   return (
     <section className="bg-white py-10">
       <div className="mx-auto grid max-w-[1200px] grid-cols-1 items-start gap-7 px-5 lg:[grid-template-columns:minmax(0,1fr)_500px]">
@@ -22,19 +39,30 @@ const SectionInfo: React.FC = () => {
           />
         </div>
 
-        {/* Card derecha: imagen + texto abajo */}
+        {/* Card derecha: video + texto */}
         <article className="overflow-hidden rounded-[22px] bg-white shadow-[0_24px_48px_rgba(16,24,40,.18)]">
           {/* Video */}
           <div className="relative block w-full h-[260px] md:h-[240px] lg:h-[300px]">
             <iframe
+              ref={iframeRef}
               className="absolute inset-0 w-full h-full"
-              src="https://www.youtube.com/embed/pkfV_zDTVo8?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&modestbranding=1&loop=1&playlist=pkfV_zDTVo8&start=293"
+              src="https://www.youtube.com/embed/0MuWOPA369E?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&modestbranding=1&loop=1&playlist=0MuWOPA369E&start=338&enablejsapi=1"
               title="Proyecto destacado"
               allow="autoplay; encrypted-media; picture-in-picture"
               allowFullScreen
               referrerPolicy="strict-origin-when-cross-origin"
               loading="eager"
             />
+            {showUnmute && (
+              <button
+                type="button"
+                onClick={unmute}
+                className="absolute bottom-3 left-3 rounded-full bg-black/60 px-3 py-2 text-xs text-white backdrop-blur hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-white/60"
+                aria-label="Activar sonido"
+              >
+                Activar sonido 🔊
+              </button>
+            )}
           </div>
 
           {/* Contenido */}
@@ -70,9 +98,6 @@ const SectionInfo: React.FC = () => {
             </div>
           </div>
         </article>
-
-
-
       </div>
     </section>
   );

@@ -12,10 +12,8 @@ const Nav: React.FC = () => {
 
   const basePill =
     'inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80 ring-offset-2 ring-offset-[#0E08C9]';
-  const inactivePill =
-    `${basePill} text-white bg-white/10 ring-1 ring-white/25 shadow-sm hover:bg-white hover:text-[#0b1324]`;
-  const activePill =
-    `${basePill} bg-white text-[#0b1324] ring-1 ring-white/70 shadow-md`;
+  const inactivePill = `${basePill} text-white bg-white/10 ring-1 ring-white/25 shadow-sm hover:bg-white hover:text-[#0b1324]`;
+  const activePill = `${basePill} bg-white text-[#0b1324] ring-1 ring-white/70 shadow-md`;
 
   const subItems = [
     'Ica San Fernando',
@@ -38,7 +36,7 @@ const Nav: React.FC = () => {
     closeTimer.current = window.setTimeout(() => {
       setIsUrbanizacionesOpen(false);
       closeTimer.current = null;
-    }, 150); // pequeño delay para permitir pasar del botón al panel
+    }, 150);
   };
 
   useEffect(() => {
@@ -62,7 +60,7 @@ const Nav: React.FC = () => {
               Inicio
             </Link>
 
-            {/* Urbanizaciones con submenu (hover + delay para evitar que se cierre al mover el mouse) */}
+            {/* Urbanizaciones con submenu */}
             <div
               className="relative"
               onMouseEnter={openMenu}
@@ -83,8 +81,8 @@ const Nav: React.FC = () => {
                 <ul
                   role="menu"
                   className="absolute left-0 top-full mt-2 z-50 min-w-[260px] rounded-[12px] border border-[#eef2f6] bg-white py-2 shadow-[0_12px_30px_rgba(16,24,40,.12)]"
-                  onMouseEnter={openMenu}     // mantiene abierto al entrar al panel
-                  onMouseLeave={scheduleClose} // cierra cuando realmente salimos
+                  onMouseEnter={openMenu}
+                  onMouseLeave={scheduleClose}
                 >
                   {subItems.map((txt) => (
                     <li key={txt} className="list-none">
@@ -102,9 +100,16 @@ const Nav: React.FC = () => {
               )}
             </div>
 
+            {/* NUEVOS ÍTEMS */}
+            <Link href="/construimos-y-terceros" className={inactivePill}>
+              Construimos y Terceros
+            </Link>
+            <Link href="/terrenos-y-casas-en-espana" className={inactivePill}>
+              Terrenos y casas en España
+            </Link>
+
             <Link href="" className={inactivePill}>Proveedores y Contratistas</Link>
             <Link href="#" className={inactivePill}>Trabaja con nosotros</Link>
-            <Link href="#" className={inactivePill}>Preguntas frecuentes</Link>
           </div>
         </div>
       </div>

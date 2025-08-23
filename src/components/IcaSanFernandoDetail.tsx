@@ -1,17 +1,27 @@
 'use client';
 
-import React from 'react';
 import ProjectDetailTemplate, { type FeatureItem } from './ProjectDetailTemplate';
-import { Trees, Route, Church, GraduationCap, Home, HandCoins } from 'lucide-react';
+import {
+  Trees,
+  Route,
+  Church,
+  GraduationCap,
+  Home,
+  Ruler,
+  BookOpen,
+  Activity,
+} from 'lucide-react';
 
 export default function IcaSanFernandoDetail() {
   const features: FeatureItem[] = [
-    { label: 'Parques y amplias áreas verdes', Icon: Trees },
+    { label: '3,000 viviendas de concreto armado, ampliables', Icon: Home },
+    { label: '650 lotes de 90 m² o 120 m²', Icon: Ruler },
+    { label: '10 parques y 1 parque zonal', Icon: Trees },
     { label: 'Pistas asfaltadas', Icon: Route },
-    { label: 'Colegio e iglesia en funcionamiento', Icon: Church },
-    { label: 'Próxima universidad', Icon: GraduationCap },
-    { label: 'Viviendas con construcción de calidad', Icon: Home },
-    { label: 'Financiamiento directo sin intereses', Icon: HandCoins },
+    { label: '2 colegios en funcionamiento', Icon: BookOpen },
+    { label: 'Iglesia en funcionamiento', Icon: Church },
+    { label: 'Centro recreativo con campos y piscina', Icon: Activity },
+    { label: 'Próxima Universidad', Icon: GraduationCap },
   ];
 
   const MAP_EMBED =
@@ -19,13 +29,14 @@ export default function IcaSanFernandoDetail() {
 
   return (
     <ProjectDetailTemplate
-      cover="/images/slider-5.jpg"
+      cover="/images/sanfernando.jpg"
       title="Ica San Fernando"
       subtitle="Km 180 Pan. Sur"
       location="Acceso directo por Panamericana Sur"
       badges={['Crédito directo', 'PRE VENTA']}
-      description="Ica San Fernando es una urbanización con áreas verdes, vías asfaltadas y equipamiento urbano clave para una vida cómoda y segura."
+      description="Ica San Fernando es una urbanización consolidada con equipamiento urbano, áreas verdes y vías asfaltadas para una vida cómoda y segura."
       features={features}
+      videoUrl="https://youtu.be/0MuWOPA369E?t=338"
       mapEmbedUrl={MAP_EMBED}
     />
   );
