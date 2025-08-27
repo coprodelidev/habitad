@@ -30,7 +30,7 @@ export default function IcaSanFernandoDetail() {
   return (
     <ProjectDetailTemplate
       cover="/images/sanfernando.jpg"
-      title="Ica San Fernando"
+      title="Ica San Fernando Lotes y Viviendas"
       subtitle="Km 180 Pan. Sur"
       location="Acceso directo por Panamericana Sur"
       badges={['Crédito directo', 'PRE VENTA']}

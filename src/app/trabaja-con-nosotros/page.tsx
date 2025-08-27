@@ -88,7 +88,7 @@ export default function PageTrabajaConNosotros() {
             {[
               {
                 Icon: Building2,
-                title: 'Urbanizaciones',
+                title: 'Urbanizaciones en Perú',
                 desc: 'Trazado, redes, pistas, veredas y señalización.',
               },
               {

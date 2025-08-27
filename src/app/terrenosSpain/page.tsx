@@ -26,18 +26,8 @@ const formatCurrency = (n: number) =>
 
 // Datos mock
 const PROPERTIES: Property[] = [
-  { id: 'mad-h1', title: 'Piso reformado en Chamberí', type: 'casa', region: 'Comunidad de Madrid', city: 'Madrid', price: 495000, area: 82, bedrooms: 2, bathrooms: 2, cover: '/images/slider-5.jpg', featured: true },
-  { id: 'cat-t1', title: 'Parcela urbana en Vallès', type: 'terreno', region: 'Cataluña', city: 'Barcelona', price: 210000, area: 420, cover: '/images/slider-5.jpg' },
-  { id: 'and-h1', title: 'Adosado con piscina en Mijas', type: 'casa', region: 'Andalucía', city: 'Málaga', price: 335000, area: 120, bedrooms: 3, bathrooms: 3, cover: '/images/slider-5.jpg', featured: true },
-  { id: 'val-t1', title: 'Terreno esquinero en l’Horta', type: 'terreno', region: 'Comunitat Valenciana', city: 'Valencia', price: 150000, area: 300, cover: '/images/slider-5.jpg' },
-  { id: 'pv-h1', title: 'Dúplex con vistas al Guggenheim', type: 'casa', region: 'País Vasco', city: 'Bilbao', price: 620000, area: 110, bedrooms: 3, bathrooms: 2, cover: '/images/slider-5.jpg' },
-  { id: 'gal-t1', title: 'Finca edificable próxima a la ría', type: 'terreno', region: 'Galicia', city: 'A Coruña', price: 98000, area: 950, cover: '/images/slider-5.jpg' },
-  { id: 'and-t2', title: 'Solar para 4 viviendas', type: 'terreno', region: 'Andalucía', city: 'Sevilla', price: 265000, area: 520, cover: '/images/slider-5.jpg' },
-  { id: 'mad-h2', title: 'Loft luminoso en Arganzuela', type: 'casa', region: 'Comunidad de Madrid', city: 'Madrid', price: 285000, area: 65, bedrooms: 1, bathrooms: 1, cover: '/images/slider-5.jpg' },
-  { id: 'mur-h1', title: 'Chalet mediterráneo con jardín', type: 'casa', region: 'Región de Murcia', city: 'Cartagena', price: 310000, area: 135, bedrooms: 3, bathrooms: 2, cover: '/images/slider-5.jpg' },
-  { id: 'cl-t1', title: 'Parcela rústica con encinas', type: 'terreno', region: 'Castilla y León', city: 'Salamanca', price: 63000, area: 5200, cover: '/images/slider-5.jpg' },
-  { id: 'ara-h1', title: 'Vivienda céntrica junto al Pilar', type: 'casa', region: 'Aragón', city: 'Zaragoza', price: 245000, area: 88, bedrooms: 2, bathrooms: 1, cover: '/images/slider-5.jpg' },
-  { id: 'bal-t1', title: 'Parcela vista mar (edificable)', type: 'terreno', region: 'Islas Baleares', city: 'Palma', price: 395000, area: 600, cover: '/images/slider-5.jpg', featured: true },
+  { id: 'mad-h1', title: 'PASTRANA', type: 'casa', region: 'Comunidad de Madrid', city: 'Madrid', price: 495000, area: 82, bedrooms: 2, bathrooms: 2, cover: '/images/slider-5.jpg', featured: true },
+  { id: 'cat-t1', title: 'Valdeluz', type: 'terreno', region: 'Cataluña', city: 'Barcelona', price: 210000, area: 420, cover: '/images/slider-5.jpg' },
 ];
 
 const REGIONES = Array.from(new Set(PROPERTIES.map((p) => p.region))).sort();

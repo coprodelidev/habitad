@@ -61,19 +61,19 @@ export default function Page() {
           </h1>
           <div className="mt-6 flex items-center justify-center gap-2 overflow-x-auto pb-2">
             <Chip active={detalleKey === 'icasf'} onClick={() => setDetalleKey('icasf')}>
-              Ica San Fernando
+              Ica San Fernando Lotes y Viviendas
             </Chip>
             <Chip
               active={detalleKey === 'huarango'}
               onClick={() => setDetalleKey('huarango')}
             >
-              Ica el Huarango
+              Ica el Huarango Lotes 
             </Chip>
             <Chip
               active={detalleKey === 'entrega'}
               onClick={() => setDetalleKey('entrega')}
             >
-              Casas y Lotes entrega inmediata
+              Casas y Lotes varios
             </Chip>
             <Chip active={detalleKey === 'pisco'} onClick={() => setDetalleKey('pisco')}>
               Pisco Condominio

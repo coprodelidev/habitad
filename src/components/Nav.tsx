@@ -16,9 +16,9 @@ const Nav: React.FC = () => {
   const activePill = `${basePill} bg-white text-[#0b1324] ring-1 ring-white/70 shadow-md`;
 
   const subItems = [
-    'Ica San Fernando',
-    'Ica el Huarango',
-    'Casas y Lotes entrega inmediata',
+    'Ica San Fernando Lotes y Viviendas',
+    'Ica el Huarango Lotes ',
+    'Casas y Lotes varios',
     'Pisco Condominio',
     'Ica San Bernardo',
   ];
@@ -74,7 +74,7 @@ const Nav: React.FC = () => {
                 onClick={() => setIsUrbanizacionesOpen((v) => !v)}
                 onKeyDown={(e) => e.key === 'Escape' && setIsUrbanizacionesOpen(false)}
               >
-                Urbanizaciones
+                Urbanizaciones en Perú
               </button>
 
               {isUrbanizacionesOpen && (
@@ -101,15 +101,25 @@ const Nav: React.FC = () => {
             </div>
 
             {/* NUEVOS ÍTEMS */}
-            <Link href="/construimos" className={inactivePill}>
-              Construimos y Terceros
+
+        
+            <Link href="/proveedores-contratistas" className={inactivePill}>Proveedores y Contratistas</Link>
+        
+            <Link href="/trabaja-con-nosotros" className={inactivePill}>Trabaja con nosotros</Link>
+
+            <Link href="/camposanto" className={inactivePill}>
+             Campo santo en Ica
             </Link>
+        
             <Link href="/terrenosSpain" className={inactivePill}>
-              Terrenos y casas en España
+              Casas , terrenos , Alquiler en España
             </Link>
 
-            <Link href="/proveedores-contratistas" className={inactivePill}>Proveedores y Contratistas</Link>
-            <Link href="/trabaja-con-nosotros" className={inactivePill}>Trabaja con nosotros</Link>
+            <Link href="/terrenosSpain" className={inactivePill}>
+              Preguntas frecuentes
+            </Link>
+
+      
           </div>
         </div>
       </div>

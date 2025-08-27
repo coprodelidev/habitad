@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 type TItem = {
   img: string;
@@ -22,7 +23,7 @@ const defaultFeatures = [
 const items: TItem[] = [
   {
     img: '/images/sanfernando.jpg',
-    title: 'Ica San Fernando',
+    title: ' Ica San Fernando Lotes y Viviendas',
     description:
       'Urbanización con 3,000 viviendas de concreto armado (ampliables por el propietario), 650 lotes de 90 m² o 120 m², amplias áreas verdes y equipamiento en funcionamiento.',
     features: [
@@ -42,13 +43,23 @@ const items: TItem[] = [
   { img: '/images/slider-5.jpg', title: 'Ica San Bernardo' },
 ];
 
+const slugFromTitle = (t: string) =>
+  t
+    .trim()
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // sin tildes
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+
 export const Testimonials: React.FC = () => {
   return (
     <section className="mx-auto max-w-[1200px] px-5 py-10">
-      {/* 3 tarjetas arriba y 2 abajo centradas */}
       <div className="flex flex-wrap justify-center gap-6">
         {items.map((t, idx) => {
           const features = t.features ?? defaultFeatures;
+          const slug = slugFromTitle(t.title);
+
           return (
             <article
               key={idx}
@@ -65,12 +76,10 @@ export const Testimonials: React.FC = () => {
               <div className="p-5 text-center">
                 <h3 className="font-extrabold leading-snug text-[#0E08C9]">{t.title}</h3>
 
-                {/* Descripción específica para Ica San Fernando */}
                 {t.description && (
                   <p className="mt-2 text-sm text-[#333] text-left">{t.description}</p>
                 )}
 
-                {/* Bloque de características (personalizadas si existen) */}
                 <div className="mt-3 border-t border-gray-100 pt-3 text-left">
                   <h4 className="text-sm font-semibold text-gray-900">Características</h4>
                   <ul className="mt-2 list-disc pl-5 text-sm text-[#333] space-y-1">
@@ -78,6 +87,17 @@ export const Testimonials: React.FC = () => {
                       <li key={f}>{f}</li>
                     ))}
                   </ul>
+
+                  {/* Botón a su sección en /proyectos */}
+                  <div className="mt-4 text-center">
+                    <Link
+                      href={`/proyectos#${slug}`}
+                      className="inline-flex items-center rounded-full bg-[#0E08C9] px-6 py-3 text-sm font-extrabold text-white shadow-md hover:bg-[#0c07a8] md:text-base"
+                      aria-label={`Ver proyecto: ${t.title.trim()}`}
+                    >
+                      VER PROYECTO
+                    </Link>
+                  </div>
                 </div>
               </div>
             </article>

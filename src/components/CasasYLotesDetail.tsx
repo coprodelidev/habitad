@@ -20,7 +20,7 @@ export default function CasasYLotesDetail() {
   return (
     <ProjectDetailTemplate
       cover="/images/slider-5.jpg"
-      title="Casas y Lotes entrega inmediata"
+      title="Casas y Lotes varios"
       subtitle="Entrega inmediata"
       location="Panamericana Sur"
       badges={['Crédito directo']}

@@ -46,7 +46,7 @@ export default function Hero() {
               width={120}
               height={80}
               priority
-              className="block w-[160px] md:w-[120px] h-auto"
+              className="block w-[120px] md:w-[80px] h-auto"
             />
           </div>
         </Link>
@@ -73,12 +73,14 @@ export default function Hero() {
           <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold md:text-base">
             <span>📍</span> A solo minutos de Ica
           </span>
-          <button
-            type="button"
-            className="inline-flex items-center rounded-full bg-white px-6 py-3 text-sm font-extrabold text-slate-900 shadow-md md:text-base"
-          >
-            VER PROYECTO
-          </button>
+          <Link href="/proyectos">
+            <button
+              type="button"
+              className="inline-flex items-center rounded-full bg-white px-6 py-3 text-sm font-extrabold text-slate-900 shadow-md md:text-base"
+            >
+              VER PROYECTO
+            </button>
+          </Link>
         </div>
       </div>
 
