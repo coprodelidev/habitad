@@ -36,7 +36,7 @@ export default function IcaSanFernandoDetail() {
       badges={['Crédito directo', 'PRE VENTA']}
       description="Ica San Fernando es una urbanización consolidada con equipamiento urbano, áreas verdes y vías asfaltadas para una vida cómoda y segura."
       features={features}
-      videoUrl="https://youtu.be/0MuWOPA369E?t=338"
+      videoUrl="https://youtu.be/WnwpeXOHL60"
       mapEmbedUrl={MAP_EMBED}
     />
   );
