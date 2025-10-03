@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Nav from '@/components/Nav';
 import IcaSanFernandoDetail from '@/components/IcaSanFernandoDetail';
-import IcaElHuarangoDetail from '@/components/IcaElHuarangoDetail';
+
 import CasasYLotesDetail from '@/components/CasasYLotesDetail';
 import PiscoCondominioDetail from '@/components/PiscoCondominioDetail';
 import IcaSanBernardoDetail from '@/components/IcaSanBernardoDetail';
@@ -91,7 +91,7 @@ export default function Page() {
       {/* Detalle */}
       <section ref={detalleRef} className="px-4 pt-8 sm:px-6">
         {detalleKey === 'icasf' && <IcaSanFernandoDetail />}
-        {detalleKey === 'huarango' && <IcaElHuarangoDetail />}
+     
         {detalleKey === 'entrega' && <CasasYLotesDetail />}
         {detalleKey === 'pisco' && <PiscoCondominioDetail />}
         {detalleKey === 'bernardo' && <IcaSanBernardoDetail />}

@@ -17,7 +17,7 @@ const Nav: React.FC = () => {
 
   const subItems = [
     'Ica San Fernando Lotes y Viviendas',
-    'Ica el Huarango Lotes ',
+
     'Casas y Lotes varios',
     'Pisco Condominio',
     'Ica San Bernardo',
