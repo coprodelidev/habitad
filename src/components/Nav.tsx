@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import React, { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 const Nav: React.FC = () => {
@@ -17,7 +18,6 @@ const Nav: React.FC = () => {
 
   const subItems = [
     'Ica San Fernando Lotes y Viviendas',
-
     'Casas y Lotes varios',
     'Pisco Condominio',
     'Ica San Bernardo',
@@ -48,10 +48,9 @@ const Nav: React.FC = () => {
   return (
     <nav className="bg-[#0E08C9] border-b border-white/10">
       <div className="mx-auto max-w-[1200px] px-5">
-        <div className="flex items-center gap-5 py-4">
-          {/* Menu */}
+        <div className="flex items-center justify-between py-4">
+          {/* Menu a la izquierda */}
           <div className="flex flex-wrap gap-3 md:gap-[14px]">
-            {/* Inicio activo por ruta */}
             <Link
               href="/"
               className={isHome ? activePill : inactivePill}
@@ -60,7 +59,6 @@ const Nav: React.FC = () => {
               Inicio
             </Link>
 
-            {/* Urbanizaciones con submenu */}
             <div
               className="relative"
               onMouseEnter={openMenu}
@@ -74,7 +72,7 @@ const Nav: React.FC = () => {
                 onClick={() => setIsUrbanizacionesOpen((v) => !v)}
                 onKeyDown={(e) => e.key === 'Escape' && setIsUrbanizacionesOpen(false)}
               >
-                Urbanizaciones en Perú
+                Urbanizaciones
               </button>
 
               {isUrbanizacionesOpen && (
@@ -100,26 +98,26 @@ const Nav: React.FC = () => {
               )}
             </div>
 
-            {/* NUEVOS ÍTEMS */}
-
-        
             <Link href="/proveedores-contratistas" className={inactivePill}>Proveedores y Contratistas</Link>
-        
             <Link href="/trabaja-con-nosotros" className={inactivePill}>Trabaja con nosotros</Link>
+            <Link href="/camposanto" className={inactivePill}>Camposanto</Link>
+            <Link href="/terrenosSpain" className={inactivePill}>Casas y terrenos en España</Link>
+          </div>
 
-            <Link href="/camposanto" className={inactivePill}>
-             Campo santo en Ica
+          {/* Logo a la derecha */}
+          <div className="z-20">
+            <Link href="https://www.coprodeli.org" aria-label="Ir al inicio" className="block">
+              <div className="rounded-3xl bg-white p-4 md:p-5 shadow-lg ring-1 ring-slate-120/80">
+                <Image
+                  src="/images/logo.jpg"
+                  alt="Habitat"
+                  width={120}
+                  height={80}
+                  priority
+                  className="block w-[120px] md:w-[80px] h-auto"
+                />
+              </div>
             </Link>
-        
-            <Link href="/terrenosSpain" className={inactivePill}>
-              Casas , terrenos , Alquiler en España
-            </Link>
-
-            <Link href="/terrenosSpain" className={inactivePill}>
-              Preguntas frecuentes
-            </Link>
-
-      
           </div>
         </div>
       </div>

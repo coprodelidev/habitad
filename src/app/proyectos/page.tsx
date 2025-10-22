@@ -63,27 +63,12 @@ export default function Page() {
             <Chip active={detalleKey === 'icasf'} onClick={() => setDetalleKey('icasf')}>
               Ica San Fernando Lotes y Viviendas
             </Chip>
-            <Chip
-              active={detalleKey === 'huarango'}
-              onClick={() => setDetalleKey('huarango')}
-            >
-              Ica el Huarango Lotes 
-            </Chip>
-            <Chip
-              active={detalleKey === 'entrega'}
-              onClick={() => setDetalleKey('entrega')}
-            >
-              Casas y Lotes varios
-            </Chip>
+
+       
             <Chip active={detalleKey === 'pisco'} onClick={() => setDetalleKey('pisco')}>
               Pisco Condominio
             </Chip>
-            <Chip
-              active={detalleKey === 'bernardo'}
-              onClick={() => setDetalleKey('bernardo')}
-            >
-              Ica San Bernardo
-            </Chip>
+
           </div>
         </div>
       </section>

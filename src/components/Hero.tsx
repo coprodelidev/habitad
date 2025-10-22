@@ -36,21 +36,7 @@ export default function Hero() {
       {/* Overlay oscuro */}
       <div className="absolute inset-0 -z-10 bg-black/45 md:bg-black/50" />
 
-      {/* LOGO arriba a la izquierda */}
-      <div className="absolute left-6 top-6 z-20">
-        <Link href="https://www.coprodeli.org" aria-label="Ir al inicio" className="block">
-          <div className="rounded-3xl bg-white p-4 md:p-5 shadow-lg ring-1 ring-slate-120/80">
-            <Image
-              src="/images/logo.jpg"
-              alt="Habitat"
-              width={120}
-              height={80}
-              priority
-              className="block w-[120px] md:w-[80px] h-auto"
-            />
-          </div>
-        </Link>
-      </div>
+
 
       {/* Auth bar: arriba a la derecha */}
       <div className="absolute right-6 top-6 z-20">
