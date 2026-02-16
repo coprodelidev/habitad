@@ -14,8 +14,30 @@ import {
   MapPin,
   CheckCircle2,
 } from 'lucide-react';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
 
 export default function IcaSanFernandoDetail() {
+  const images = [
+    '/images/icasanfernando/WhatsApp Image 2026-02-16 at 21.45.13.jpeg',
+    '/images/icasanfernando/WhatsApp Image 2026-02-16 at 21.45.14 (2).jpeg',
+    '/images/icasanfernando/WhatsApp Image 2026-02-16 at 21.45.14 (3).jpeg',
+    '/images/icasanfernando/WhatsApp Image 2026-02-16 at 21.45.14.jpeg',
+    '/images/icasanfernando/WhatsApp Image 2026-02-16 at 21.45.15 (1).jpeg',
+    '/images/icasanfernando/WhatsApp Image 2026-02-16 at 21.45.15.jpeg',
+    '/images/icasanfernando/WhatsApp Image 2026-02-16 at 21.45.55.jpeg',
+    '/images/icasanfernando/WhatsApp Image 2026-02-16 at 23.07.51.jpeg',
+    '/images/icasanfernando/WhatsApp Image 2026-02-16 at 23.07.52 (1).jpeg',
+    '/images/icasanfernando/WhatsApp Image 2026-02-16 at 23.07.52 (2).jpeg',
+    '/images/icasanfernando/WhatsApp Image 2026-02-16 at 23.07.52 (3).jpeg',
+    '/images/icasanfernando/WhatsApp Image 2026-02-16 at 23.07.52.jpeg',
+  ];
+
   return (
     <section className="mx-auto mb-10 max-w-[1200px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow">
       {/* Hero */}
@@ -38,6 +60,35 @@ export default function IcaSanFernandoDetail() {
             <span className="rounded-full bg-white/20 px-2 py-1 font-semibold">ACTIVO</span>
           </div>
         </div>
+      </div>
+
+      {/* Slider de Imágenes */}
+      <div className="px-6 py-8 md:px-12">
+        <Carousel
+          opts={{
+            align: "start",
+            loop: true,
+          }}
+          className="w-full"
+        >
+          <CarouselContent>
+            {images.map((image, index) => (
+              <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
+                <div className="relative h-[250px] overflow-hidden rounded-xl border border-slate-200">
+                  <Image
+                    src={image}
+                    alt={`Ica San Fernando ${index + 1}`}
+                    fill
+                    className="object-cover transition-transform hover:scale-105"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  />
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="left-2" />
+          <CarouselNext className="right-2" />
+        </Carousel>
       </div>
 
       {/* Contenido */}
