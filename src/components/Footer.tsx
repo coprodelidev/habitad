@@ -5,7 +5,7 @@ const Footer: React.FC = () => {
     <footer className="bg-[#0E08C9] text-white">
       <div className="mx-auto max-w-[1200px] px-5 py-14">
         {/* Grid principal */}
-        <div className="grid gap-10 lg:[grid-template-columns:1.3fr_1fr_1fr_1fr]">
+        <div className="grid gap-10 lg:grid-cols-2">
           {/* Col 1: brand + copy + social */}
           <div>
             <Link href="#" className="inline-flex items-center gap-3 font-extrabold text-[22px] text-white">
@@ -58,48 +58,6 @@ const Footer: React.FC = () => {
               <li className="text-[18px] leading-7">
                 Lorem Ipsum 123,<br />Dolor Sit Amet
               </li>
-            </ul>
-          </div>
-
-          {/* Col 3: legales */}
-          <div>
-            <h4 className="mb-4 text-[22px] font-semibold">Legales</h4>
-            <ul className="flex list-none flex-col gap-3">
-              {[
-                'Lorem Ipsum',
-                'Dolor Sit',
-                'Amet Consectetur',
-                'Adipiscing Elit',
-                'Sed Do',
-                'Eiusmod Tempor',
-                'Incididunt Ut',
-              ].map((t) => (
-                <li key={t}>
-                  <Link
-                    href="#"
-                    className="text-[18px] leading-7 text-[#e6f0fa] hover:underline"
-                  >
-                    {t}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Col 4: habitat */}
-          <div>
-            <h4 className="mb-4 text-[22px] font-semibold">Habitat</h4>
-            <ul className="flex list-none flex-col gap-3">
-              {['Departamentos', 'Hoteles', 'Facturación Electrónica'].map((t) => (
-                <li key={t}>
-                  <Link
-                    href="#"
-                    className="text-[18px] leading-7 text-[#e6f0fa] hover:underline"
-                  >
-                    {t}
-                  </Link>
-                </li>
-              ))}
             </ul>
           </div>
         </div>
