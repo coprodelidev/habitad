@@ -18,9 +18,6 @@ const Nav: React.FC = () => {
 
   const subItems = [
     'Ica San Fernando Lotes y Viviendas',
-    'Casas y Lotes varios',
-    'Pisco Condominio',
-    'Ica San Bernardo',
   ];
 
   const openMenu = () => {
@@ -97,11 +94,6 @@ const Nav: React.FC = () => {
                 </ul>
               )}
             </div>
-
-            <Link href="/proveedores-contratistas" className={inactivePill}>Proveedores y Contratistas</Link>
-            <Link href="/trabaja-con-nosotros" className={inactivePill}>Trabaja con nosotros</Link>
-            <Link href="/camposanto" className={inactivePill}>Camposanto</Link>
-            <Link href="/terrenosSpain" className={inactivePill}>Casas y terrenos en España</Link>
           </div>
 
           {/* Logo a la derecha */}
