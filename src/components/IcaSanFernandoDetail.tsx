@@ -248,28 +248,40 @@ export default function IcaSanFernandoDetail() {
           </div>
         </div>
 
-        {/* Video */}
+        {/* Videos */}
         <div>
-          <h3 className="mb-3 text-lg font-extrabold text-[#0b1324]">Video</h3>
-          <div className="relative h-[320px] w-full overflow-hidden rounded-2xl border border-slate-200 shadow md:h-[460px]">
-            <iframe
-              className="absolute inset-0 h-full w-full"
-              src="https://www.youtube.com/embed/WnwpeXOHL60?autoplay=1&mute=1&loop=1&playlist=WnwpeXOHL60&controls=0&modestbranding=1&rel=0&playsinline=1"
-              title="Ica San Fernando - Video"
-              allow="autoplay; encrypted-media; picture-in-picture"
-              allowFullScreen
-              referrerPolicy="strict-origin-when-cross-origin"
-            />
+          <h3 className="mb-3 text-lg font-extrabold text-[#0b1324]">Videos</h3>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="relative h-[320px] w-full overflow-hidden rounded-2xl border border-slate-200 shadow">
+              <iframe
+                className="absolute inset-0 h-full w-full"
+                src="https://www.youtube.com/embed/kMuRRtkFtbI?autoplay=0&mute=0&controls=1&modestbranding=1&rel=0&playsinline=1"
+                title="Ica San Fernando - Video 1"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
+            </div>
+            <div className="relative h-[320px] w-full overflow-hidden rounded-2xl border border-slate-200 shadow">
+              <iframe
+                className="absolute inset-0 h-full w-full"
+                src="https://www.youtube.com/embed/-9k3MGQ5u3s?autoplay=0&mute=0&controls=1&modestbranding=1&rel=0&playsinline=1"
+                title="Ica San Fernando - Video 2"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
+            </div>
           </div>
         </div>
 
         {/* Ubicación / Google Maps */}
         <div>
           <h3 className="mb-3 text-lg font-extrabold text-[#0b1324]">Ubicación</h3>
-          <div className="relative h-[320px] w-full overflow-hidden rounded-2xl border border-slate-200 shadow md:h-[420px]">
+          <div className="relative h-[320px] w-full overflow-hidden rounded-2xl border border-slate-200 shadow md:h-[450px]">
             <iframe
               className="absolute inset-0 h-full w-full"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1184.329934611341!2d-75.80947486645502!3d-14.065955537013645!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9110e4a72c514841%3A0x52f1fe9788525c53!2sLas%20Palmeras%20de%20San%20Fernando!5e0!3m2!1ses!2ses!4v1755880895715!5m2!1ses!2ses"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d30961.514160820137!2d-75.84529868916019!3d-14.065998099999991!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9110e4a72c514841%3A0x52f1fe9788525c53!2sLas%20Palmeras%20de%20San%20Fernando!5e0!3m2!1ses!2ses!4v1771280865643!5m2!1ses!2ses"
               loading="lazy"
               allowFullScreen
               referrerPolicy="no-referrer-when-downgrade"

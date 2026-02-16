@@ -37,9 +37,6 @@ const items: TItem[] = [
       'Próxima Universidad',
     ],
   },
-  { img: '/images/slider-5.jpg', title: 'Casas y Lotes entrega inmediata' },
-  { img: '/images/slider-5.jpg', title: 'Pisco Condominio' },
-  { img: '/images/slider-5.jpg', title: 'Ica San Bernardo' },
 ];
 
 const slugFromTitle = (t: string) =>

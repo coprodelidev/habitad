@@ -63,12 +63,6 @@ export default function Page() {
             <Chip active={detalleKey === 'icasf'} onClick={() => setDetalleKey('icasf')}>
               Ica San Fernando Lotes y Viviendas
             </Chip>
-
-       
-            <Chip active={detalleKey === 'pisco'} onClick={() => setDetalleKey('pisco')}>
-              Pisco Condominio
-            </Chip>
-
           </div>
         </div>
       </section>

@@ -1,0 +1,6 @@
+{
+  "claude.permissionMode": "auto",
+  "claude.alwaysApproveReadOnlyTools": true,
+  "claude.alwaysApproveFileEdits": true,
+  "claude.alwaysApproveBash": true
+}
