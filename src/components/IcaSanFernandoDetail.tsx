@@ -21,6 +21,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import Autoplay from 'embla-carousel-autoplay';
 
 export default function IcaSanFernandoDetail() {
   const images = [
@@ -69,6 +70,11 @@ export default function IcaSanFernandoDetail() {
             align: "start",
             loop: true,
           }}
+          plugins={[
+            Autoplay({
+              delay: 3000,
+            }),
+          ]}
           className="w-full"
         >
           <CarouselContent>
