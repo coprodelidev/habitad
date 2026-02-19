@@ -1,4 +1,6 @@
 import Link from 'next/link';
+import Image from 'next/image';
+import { Facebook, Instagram, Linkedin, Twitter, Youtube } from 'lucide-react';
 
 const Footer: React.FC = () => {
   return (
@@ -8,46 +10,53 @@ const Footer: React.FC = () => {
         <div className="grid gap-10 lg:grid-cols-2">
           {/* Col 1: brand + social */}
           <div>
-            <Link href="#" className="inline-flex items-center gap-3 font-extrabold text-[22px] text-white">
-              <span className="h-7 w-10 rounded-[6px] bg-gradient-to-br from-[#ffd54f] to-[#ffb300]" />
-              Habitat
+            <Link href="https://www.coprodeli.org" aria-label="Ir al inicio" className="inline-block">
+              <div className="rounded-3xl bg-white p-4 md:p-5 shadow-lg ring-1 ring-slate-120/80">
+                <Image
+                  src="/images/logo.jpg"
+                  alt="Habitat"
+                  width={120}
+                  height={80}
+                  className="block h-auto w-[120px] md:w-[80px]"
+                />
+              </div>
             </Link>
 
             <div className="mt-5 flex flex-wrap gap-3">
               <a
                 href="https://www.facebook.com/people/COPRODELI/61561853229676/?mibextid=ZbWKwL"
                 aria-label="Facebook"
-                className="flex h-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] px-4 font-extrabold"
+                className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#0a6aa8]"
               >
-                Facebook
+                <Facebook size={20} />
               </a>
               <a
                 href="https://www.instagram.com/coprodeliperu/"
                 aria-label="Instagram"
-                className="flex h-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] px-4 font-extrabold"
+                className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#0a6aa8]"
               >
-                Instagram
+                <Instagram size={20} />
               </a>
               <a
                 href="https://www.youtube.com/user/COPRODELIPeru"
                 aria-label="YouTube"
-                className="flex h-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] px-4 font-extrabold"
+                className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#0a6aa8]"
               >
-                YouTube
+                <Youtube size={20} />
               </a>
               <a
                 href="https://x.com/CoprodeliPeru?t=kDkGNfstLHkSEN24NWGkpg&s=08"
                 aria-label="X"
-                className="flex h-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] px-4 font-extrabold"
+                className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#0a6aa8]"
               >
-                X
+                <Twitter size={20} />
               </a>
               <a
                 href="https://www.linkedin.com/in/coprodeli/"
                 aria-label="LinkedIn"
-                className="flex h-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] px-4 font-extrabold"
+                className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#0a6aa8]"
               >
-                LinkedIn
+                <Linkedin size={20} />
               </a>
             </div>
           </div>
