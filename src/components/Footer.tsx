@@ -6,47 +6,49 @@ const Footer: React.FC = () => {
       <div className="mx-auto max-w-[1200px] px-5 py-14">
         {/* Grid principal */}
         <div className="grid gap-10 lg:grid-cols-2">
-          {/* Col 1: brand + copy + social */}
+          {/* Col 1: brand + social */}
           <div>
             <Link href="#" className="inline-flex items-center gap-3 font-extrabold text-[22px] text-white">
               <span className="h-7 w-10 rounded-[6px] bg-gradient-to-br from-[#ffd54f] to-[#ffb300]" />
               Habitat
             </Link>
 
-            <p className="mt-4 opacity-95 text-[18px] leading-relaxed md:text-[18px]">
-              Lorem ipsum dolor sit amet,<br />
-              consectetur adipiscing elit
-            </p>
-
-            <div className="mt-5 flex gap-3">
-              <Link
-                href="#"
+            <div className="mt-5 flex flex-wrap gap-3">
+              <a
+                href="https://www.facebook.com/people/COPRODELI/61561853229676/?mibextid=ZbWKwL"
                 aria-label="Facebook"
-                className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] font-extrabold"
+                className="flex h-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] px-4 font-extrabold"
               >
-                L1
-              </Link>
-              <Link
-                href="#"
+                Facebook
+              </a>
+              <a
+                href="https://www.instagram.com/coprodeliperu/"
                 aria-label="Instagram"
-                className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] font-extrabold"
+                className="flex h-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] px-4 font-extrabold"
               >
-                L2
-              </Link>
-              <Link
-                href="#"
+                Instagram
+              </a>
+              <a
+                href="https://www.youtube.com/user/COPRODELIPeru"
                 aria-label="YouTube"
-                className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] font-extrabold"
+                className="flex h-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] px-4 font-extrabold"
               >
-                L3
-              </Link>
-              <Link
-                href="#"
-                aria-label="TikTok"
-                className="flex h-11 w-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] font-extrabold"
+                YouTube
+              </a>
+              <a
+                href="https://x.com/CoprodeliPeru?t=kDkGNfstLHkSEN24NWGkpg&s=08"
+                aria-label="X"
+                className="flex h-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] px-4 font-extrabold"
               >
-                L4
-              </Link>
+                X
+              </a>
+              <a
+                href="https://www.linkedin.com/in/coprodeli/"
+                aria-label="LinkedIn"
+                className="flex h-11 items-center justify-center rounded-[10px] bg-[#0a6aa8] px-4 font-extrabold"
+              >
+                LinkedIn
+              </a>
             </div>
           </div>
 
@@ -54,10 +56,8 @@ const Footer: React.FC = () => {
           <div>
             <h4 className="mb-4 text-[22px] font-semibold">Contacto</h4>
             <ul className="flex list-none flex-col gap-3">
-              <li className="text-[18px] leading-7">+1 234 567 890</li>
-              <li className="text-[18px] leading-7">
-                Lorem Ipsum 123,<br />Dolor Sit Amet
-              </li>
+              <li className="text-[18px] leading-7">Telefono: 989138741 - 989 138 732</li>
+              <li className="text-[18px] leading-7">Direccion Km 8 de la Carretera Carhuaz</li>
             </ul>
           </div>
         </div>
