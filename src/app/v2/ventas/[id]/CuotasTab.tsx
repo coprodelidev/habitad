@@ -27,8 +27,8 @@ export function CuotasTab({
   const [viewing, setViewing] = useState<string | null>(null);
 
   const anularPago = async (pagoId: string) => {
-    if (!confirm('¿Anular este pago? (Solo admin)')) return;
-    const { error } = await supabaseV2.from('pagos').update({ estado: 'anulado' }).eq('id', pagoId);
+    if (!confirm('¿Anular este pago? Se revertirá su aplicación a las cuotas y al saldo a favor.')) return;
+    const { error } = await supabaseV2.rpc('anular_pago', { p_pago_id: pagoId });
     if (error) setError(error.message);
     else onChange();
   };

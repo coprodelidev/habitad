@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { supabaseV2 } from '@/lib/v2/supabaseV2';
-import type { Propiedad, Venta } from '@/lib/v2/types';
+import type { Propiedad, Venta, SaldoVenta } from '@/lib/v2/types';
 import { formatDateTime, formatMoney, timeRemaining } from '@/lib/v2/format';
 import { useEffect, useState } from 'react';
 import { isAdmin } from '@/lib/v2/permissions';
@@ -21,12 +21,17 @@ export function UnidadDetalleModal({
 }) {
   const { user } = useV2User();
   const canAdmin = isAdmin(user?.roleCode);
-  const [cliente, setCliente] = useState<{ nombres: string; apellidos: string; dni: string } | null>(null);
+  const [cliente, setCliente] = useState<{ nombres: string; apellidos: string; dni: string; telefono: string | null; email: string | null } | null>(null);
+  const [saldo, setSaldo] = useState<SaldoVenta | null>(null);
 
   useEffect(() => {
     if (venta?.cliente_id) {
-      supabaseV2.from('clientes').select('nombres, apellidos, dni').eq('id', venta.cliente_id).maybeSingle()
+      supabaseV2.from('clientes').select('nombres, apellidos, dni, telefono, email').eq('id', venta.cliente_id).maybeSingle()
         .then((res: any) => setCliente(res?.data ?? null));
+    }
+    if (venta?.id) {
+      supabaseV2.from('vw_saldos_venta').select('*').eq('venta_id', venta.id).maybeSingle()
+        .then((res: any) => setSaldo(res?.data ?? null));
     }
   }, [venta]);
 
@@ -48,19 +53,21 @@ export function UnidadDetalleModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-lg rounded-lg bg-white shadow-xl">
+      <div className="w-full max-w-xl rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between border-b px-5 py-3">
           <h2 className="text-lg font-semibold">Detalle de unidad</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
         </div>
         <div className="p-5 text-sm">
           <div className="mb-3 font-mono text-xs text-slate-500">{propiedad.cuh}</div>
-          <Row k="Mz / Lt" v={`${propiedad.manzana ?? '—'} / ${propiedad.lote ?? '—'}`} />
-          <Row k="Tipo" v={propiedad.tipo} />
-          <Row k="Modelo" v={propiedad.modelo ?? '—'} />
-          <Row k="Precio" v={formatMoney(propiedad.precio_venta ?? propiedad.precio_lista, propiedad.moneda)} />
-          <Row k="Estado físico" v={propiedad.estado_fisico} />
-          <Row k="Estado comercial" v={propiedad.estado_comercial} />
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <Row k="Mz / Lt" v={`${propiedad.manzana ?? '—'} / ${propiedad.lote ?? '—'}`} />
+            <Row k="Tipo" v={propiedad.tipo} />
+            <Row k="Modelo" v={propiedad.modelo ?? '—'} />
+            <Row k="Precio" v={formatMoney(propiedad.precio_venta ?? propiedad.precio_lista, propiedad.moneda)} />
+            <Row k="Estado físico" v={propiedad.estado_fisico} />
+            <Row k="Estado comercial" v={propiedad.estado_comercial} />
+          </div>
 
           {propiedad.estado_fisico === 'bloqueado' && (
             <div className="mt-3 rounded bg-sky-50 p-3 text-sky-900">
@@ -72,19 +79,48 @@ export function UnidadDetalleModal({
           )}
 
           {venta && (
-            <div className="mt-4 rounded border border-slate-200 bg-slate-50 p-3">
-              <div className="mb-2 text-xs font-semibold uppercase text-slate-500">Venta activa</div>
-              {cliente && (
-                <Row k="Cliente" v={`${cliente.nombres} ${cliente.apellidos} · DNI ${cliente.dni}`} />
+            <div className="mt-4 space-y-3">
+              <div className="rounded border border-slate-200 bg-slate-50 p-3">
+                <div className="mb-2 text-xs font-semibold uppercase text-slate-500">Cliente</div>
+                {cliente ? (
+                  <>
+                    <Row k="Nombre" v={`${cliente.nombres} ${cliente.apellidos}`} />
+                    <Row k="DNI" v={cliente.dni} />
+                    {cliente.telefono && <Row k="Teléfono" v={cliente.telefono} />}
+                    {cliente.email && <Row k="Email" v={cliente.email} />}
+                  </>
+                ) : (
+                  <div className="text-slate-500">Cargando…</div>
+                )}
+              </div>
+
+              <div className="rounded border border-slate-200 bg-slate-50 p-3">
+                <div className="mb-2 text-xs font-semibold uppercase text-slate-500">Venta</div>
+                <Row k="Estado" v={venta.estado} />
+                {venta.estado === 'separacion' && (
+                  <>
+                    <Row k="Vencimiento" v={formatDateTime(venta.fecha_vencimiento_separacion)} />
+                    <Row k="Tiempo restante" v={timeRemaining(venta.fecha_vencimiento_separacion)} />
+                  </>
+                )}
+                {venta.fecha_contrato && <Row k="Contrato emitido" v={formatDateTime(venta.fecha_contrato)} />}
+              </div>
+
+              {saldo && (
+                <div className="rounded border border-slate-200 bg-slate-50 p-3">
+                  <div className="mb-2 text-xs font-semibold uppercase text-slate-500">Estado de pagos</div>
+                  <Row k="Precio acordado" v={formatMoney(saldo.precio_acordado, saldo.moneda)} />
+                  <Row k="Total separación" v={formatMoney(saldo.total_separacion, saldo.moneda)} />
+                  <Row k="Total inicial" v={formatMoney(saldo.total_inicial, saldo.moneda)} />
+                  <Row k="Total cuotas" v={formatMoney(saldo.total_cuotas, saldo.moneda)} />
+                  <div className="my-1 border-t border-slate-200" />
+                  <Row k="Total pagado" v={formatMoney(saldo.total_pagado, saldo.moneda)} highlight />
+                  <Row k="Saldo pendiente" v={formatMoney(saldo.saldo_pendiente, saldo.moneda)} highlight />
+                  {saldo.saldo_favor > 0 && <Row k="Saldo a favor" v={formatMoney(saldo.saldo_favor, saldo.moneda)} />}
+                </div>
               )}
-              <Row k="Estado" v={venta.estado} />
-              {venta.estado === 'separacion' && (
-                <>
-                  <Row k="Vencimiento" v={formatDateTime(venta.fecha_vencimiento_separacion)} />
-                  <Row k="Tiempo restante" v={timeRemaining(venta.fecha_vencimiento_separacion)} />
-                </>
-              )}
-              <div className="mt-3 flex gap-2">
+
+              <div className="flex gap-2">
                 <Link
                   href={`/v2/ventas/${venta.id}`}
                   className="rounded bg-indigo-600 px-3 py-1 text-xs text-white hover:bg-indigo-500"
@@ -105,11 +141,11 @@ export function UnidadDetalleModal({
   );
 }
 
-function Row({ k, v }: { k: string; v: React.ReactNode }) {
+function Row({ k, v, highlight }: { k: string; v: React.ReactNode; highlight?: boolean }) {
   return (
-    <div className="flex justify-between py-1 text-sm">
+    <div className="flex justify-between py-0.5 text-sm">
       <span className="text-slate-500">{k}</span>
-      <span className="font-medium text-slate-900 capitalize">{v}</span>
+      <span className={`capitalize ${highlight ? 'font-semibold text-slate-900' : 'text-slate-800'}`}>{v}</span>
     </div>
   );
 }

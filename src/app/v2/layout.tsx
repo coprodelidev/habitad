@@ -11,7 +11,12 @@ export default function V2Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, loading } = useV2User();
 
+  // /v2/print/* son páginas standalone (para imprimir). Saltan el sidebar y los guards de rol.
+  // El cliente SÍ necesita poder abrirlas para ver sus propios documentos emitidos.
+  const isPrintRoute = pathname?.startsWith('/v2/print') ?? false;
+
   useEffect(() => {
+    if (isPrintRoute) return; // print rutas: sin guards
     if (!loading && !user) {
       router.replace('/');
       return;
@@ -26,7 +31,12 @@ export default function V2Layout({ children }: { children: React.ReactNode }) {
     if (user.roleCode === 'promotor' && pathname === '/v2') {
       router.replace('/v2/plano');
     }
-  }, [loading, user, router, pathname]);
+  }, [loading, user, router, pathname, isPrintRoute]);
+
+  if (isPrintRoute) {
+    // Standalone: el /v2/print/layout.tsx se encarga del shell mínimo
+    return <>{children}</>;
+  }
 
   if (loading) {
     return (
