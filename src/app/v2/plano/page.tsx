@@ -91,10 +91,10 @@ export default function PlanoPage() {
           <p className="text-sm text-slate-500">Click en una unidad para operar sobre ella.</p>
         </div>
         <div className="flex gap-4 text-xs">
-          <Legend color="bg-green-500" label={`Libres ${counts.libre}`} />
-          <Legend color="bg-yellow-400" label={`Separadas ${counts.separado}`} />
-          <Legend color="bg-red-500" label={`Ocupadas ${counts.ocupado}`} />
-          <Legend color="bg-sky-500" label={`Bloqueadas ${counts.bloqueado}`} />
+          <Legend color="bg-emerald-600" label={`Libres ${counts.libre}`} />
+          <Legend color="bg-amber-400" label={`Separadas ${counts.separado}`} />
+          <Legend color="bg-red-600" label={`Ocupadas ${counts.ocupado}`} />
+          <Legend color="bg-sky-600" label={`Bloqueadas ${counts.bloqueado}`} />
         </div>
       </header>
 
@@ -128,24 +128,24 @@ export default function PlanoPage() {
         <div className="grid grid-cols-[repeat(auto-fill,minmax(110px,1fr))] gap-3">
           {filtered.map((p) => {
             const color =
-              p.estado_fisico === 'libre' ? 'bg-green-500 hover:bg-green-600'
-              : p.estado_fisico === 'separado' ? 'bg-yellow-400 hover:bg-yellow-500 text-slate-900'
-              : p.estado_fisico === 'ocupado' ? 'bg-red-500 hover:bg-red-600'
-              : 'bg-sky-500 hover:bg-sky-600';
+              p.estado_fisico === 'libre' ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+              : p.estado_fisico === 'separado' ? 'bg-amber-400 hover:bg-amber-500 text-slate-900'
+              : p.estado_fisico === 'ocupado' ? 'bg-red-600 hover:bg-red-700 text-white'
+              : 'bg-sky-600 hover:bg-sky-700 text-white';
             const venta = ventasActivas[p.id];
             return (
               <button
                 key={p.id}
                 onClick={() => handleClick(p)}
                 onContextMenu={(e) => handleRightClick(e, p)}
-                className={`relative flex min-h-[96px] flex-col items-center justify-center rounded-lg p-3 text-white shadow transition ${color}`}
+                className={`relative flex min-h-[96px] flex-col items-center justify-center rounded-lg p-3 font-medium shadow transition ${color}`}
                 title={`${p.cuh} — ${p.manzana ?? ''}/${p.lote ?? ''}${canBlock ? ' (click derecho: bloquear/desbloquear)' : ''}`}
               >
-                <span className="text-xs opacity-80">{p.manzana ?? '—'}/{p.lote ?? '—'}</span>
+                <span className="text-xs opacity-90">{p.manzana ?? '—'}/{p.lote ?? '—'}</span>
                 <span className="mt-0.5 font-mono text-xs">{p.cuh}</span>
-                <span className="mt-1 text-[11px] opacity-90">{formatMoney(p.precio_venta ?? p.precio_lista, p.moneda)}</span>
+                <span className="mt-1 text-[11px] font-semibold">{formatMoney(p.precio_venta ?? p.precio_lista, p.moneda)}</span>
                 {venta && p.estado_fisico === 'separado' && (
-                  <span className="mt-0.5 text-[10px] font-medium">⏱ {shortDuration(venta.fecha_vencimiento_separacion)}</span>
+                  <span className="mt-0.5 text-[10px] font-bold">⏱ {shortDuration(venta.fecha_vencimiento_separacion)}</span>
                 )}
               </button>
             );

@@ -88,13 +88,16 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
     : 'Registrar pago';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-xl rounded-lg bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b px-5 py-3">
-          <h2 className="text-lg font-semibold">{title}</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-lg bg-white shadow-xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b px-4 py-2">
+          <h2 className="text-base font-semibold">{title}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
         </div>
-        <div className="grid grid-cols-2 gap-3 p-5">
+        <div className="grid grid-cols-2 gap-3 p-4">
           <Field label="Fecha depósito *">
             <input type="date" className={inp} value={form.fecha_deposito} onChange={(e) => setForm({ ...form, fecha_deposito: e.target.value })} />
           </Field>

@@ -73,13 +73,16 @@ export function ImportExcelModal({ etapas, onClose, onDone }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-3xl rounded-lg bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b px-5 py-3">
-          <h2 className="text-lg font-semibold">Importar propiedades desde Excel</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-2xl rounded-lg bg-white shadow-xl max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b px-4 py-2">
+          <h2 className="text-base font-semibold">Importar propiedades desde Excel</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
         </div>
-        <div className="p-5">
+        <div className="p-4">
           <p className="mb-3 text-sm text-slate-600">
             Columnas aceptadas: <code>cuh, etapa, tipo, modelo, manzana, lote, ubicacion, area_m2, precio_lista, precio_venta, moneda, partida_registral</code>
           </p>

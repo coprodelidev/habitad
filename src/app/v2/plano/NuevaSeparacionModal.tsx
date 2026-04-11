@@ -77,13 +77,16 @@ export function NuevaSeparacionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-xl rounded-lg bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b px-5 py-3">
-          <h2 className="text-lg font-semibold">Nueva separación</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-md rounded-lg bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b px-4 py-2">
+          <h2 className="text-base font-semibold">Nueva separación</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
         </div>
-        <div className="p-5">
+        <div className="p-4">
           <div className="mb-4 rounded-md bg-slate-50 p-3 text-sm">
             <div className="font-mono text-xs text-slate-500">{propiedad.cuh}</div>
             <div className="mt-1 text-slate-900">
