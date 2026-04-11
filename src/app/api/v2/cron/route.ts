@@ -1,19 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// Endpoint protegido para ser llamado por Vercel Cron / GitHub Actions / cualquier scheduler externo.
-// Tareas:
-//   - Liberar separaciones vencidas (24h) → llama a v2.liberar_separaciones_vencidas()
-//   - Cancelar iniciales vencidas (3m) → llama a v2.cancelar_iniciales_vencidas()
+// Endpoint protegido llamado por Vercel Cron (hourly) para:
+//   - Liberar separaciones vencidas (24h) → v2.liberar_separaciones_vencidas()
+//   - Cancelar iniciales vencidas (3m) → v2.cancelar_iniciales_vencidas()
 //   - Marcar cuotas como vencidas (por fecha)
 //
-// Autenticación: header `x-cron-secret` debe coincidir con CRON_SECRET.
+// Autenticación: Vercel Cron inyecta automáticamente
+//   Authorization: Bearer <CRON_SECRET>
+// cuando existe el env var CRON_SECRET en el proyecto. Aceptamos también
+// `x-cron-secret` como fallback para invocaciones manuales de admin.
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get('x-cron-secret') ?? req.nextUrl.searchParams.get('secret');
-  if (!secret || secret !== process.env.CRON_SECRET) {
+  const expected = process.env.CRON_SECRET;
+  if (!expected) {
+    return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 });
+  }
+  const authHeader = req.headers.get('authorization') ?? '';
+  const bearer = authHeader.toLowerCase().startsWith('bearer ') ? authHeader.slice(7) : null;
+  const manual = req.headers.get('x-cron-secret');
+  if (bearer !== expected && manual !== expected) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 

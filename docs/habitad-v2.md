@@ -31,6 +31,7 @@ Con control granular por roles, trazabilidad total (auditoría), multi-moneda (P
 - **Schema dedicado `v2`**: todas las tablas nuevas viven bajo `v2.*` (`v2.propiedades`, `v2.ventas`, `v2.pagos`, etc.). El schema `public` de v1 queda intacto.
 - Aislamiento real: las RLS, funciones y vistas se definen sobre `v2`. Rollback = `DROP SCHEMA v2 CASCADE`.
 - Migración de datos v1→v2 se hará con `INSERT ... SELECT` interno cuando llegue el momento del cutover, sin exportar nada.
+- **Enums** (10): `tipo_propiedad`, `estado_fisico`, `estado_comercial`, `moneda`, `estado_venta`, `tipo_pago`, `estado_pago`, `estado_cuota`, `tipo_documento`, `operacion_audit`.
 
 ### Stack
 
@@ -253,6 +254,17 @@ La SBS publica el tipo de cambio oficial diario. Opciones:
 - Servicio de terceros (ej. APIs de tipo de cambio).
 
 Se cachea diariamente en `v2.tipo_cambio_sbs` (fecha, compra, venta) y se consulta desde ahí. Si el día no tiene dato (feriado), se usa el último disponible.
+
+### NOTA — `CRON_SECRET` en Vercel
+**Estado**: ✅ configurado el 2026-04-11 en los entornos `production`, `preview` y `development` del proyecto `habitad` (prj_HpxXh3zxCpor8DDvmMLaY0k8SeAy).
+
+- Valor generado aleatoriamente (32 bytes hex). Guardado también en `.env.local` local para pruebas, y como `env.CRON_SECRET` en Vercel (tipo `encrypted`).
+- Vercel Cron inyecta automáticamente `Authorization: Bearer <CRON_SECRET>` al llamar `/api/v2/cron` (hourly según `vercel.json`).
+- El endpoint además acepta `x-cron-secret` como fallback para ejecuciones manuales desde admin.
+- Si se necesita rotar: generar nuevo, actualizar en Vercel envs + `.env.local`, sin cambios de código.
+
+### NOTA — Build strict
+**Estado**: ✅ `next.config.ts` tiene `typescript.ignoreBuildErrors = false` y `eslint.ignoreDuringBuilds = false` desde 2026-04-11. Cualquier error de tipos o lint rompe el build y bloquea el deploy — eso queremos.
 
 ### NOTA — Notificaciones
 **Estado**: MVP = notificaciones in-app. Email/WhatsApp para fase 2.
