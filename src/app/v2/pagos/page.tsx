@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabaseV2 } from '@/lib/v2/supabaseV2';
 import { formatDate, formatMoney } from '@/lib/v2/format';
+import { useV2User } from '@/lib/v2/useV2User';
+import { isAdmin } from '@/lib/v2/permissions';
 
 interface PagoRow {
   id: string;
@@ -24,6 +26,8 @@ interface PagoRow {
 }
 
 export default function PagosPage() {
+  const { user } = useV2User();
+  const canImport = isAdmin(user?.roleCode);
   const [rows, setRows] = useState<PagoRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,9 +70,11 @@ export default function PagosPage() {
           <h1 className="text-2xl font-semibold text-slate-900">Pagos</h1>
           <p className="text-sm text-slate-500">Vista global de pagos registrados</p>
         </div>
-        <Link href="/v2/pagos/importar" className="rounded-md bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-500">
-          Importar reporte bancario
-        </Link>
+        {canImport && (
+          <Link href="/v2/pagos/importar" className="rounded-md bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-500">
+            Importar reporte bancario
+          </Link>
+        )}
       </header>
 
       <div className="mb-4 grid grid-cols-1 gap-2 md:grid-cols-5">

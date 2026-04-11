@@ -17,8 +17,8 @@ export default function V2Layout({ children }: { children: React.ReactNode }) {
       return;
     }
     if (!user) return;
-    // Cliente siempre va a su portal — no tiene dashboard operacional
-    if (isCliente(user.roleCode) && pathname === '/v2') {
+    // Cliente: solo puede estar en /v2/portal (o subrutas). Cualquier otro path → portal.
+    if (isCliente(user.roleCode) && !pathname?.startsWith('/v2/portal')) {
       router.replace('/v2/portal');
       return;
     }
