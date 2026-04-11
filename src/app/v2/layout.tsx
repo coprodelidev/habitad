@@ -16,9 +16,15 @@ export default function V2Layout({ children }: { children: React.ReactNode }) {
       router.replace('/');
       return;
     }
+    if (!user) return;
     // Cliente siempre va a su portal — no tiene dashboard operacional
-    if (user && isCliente(user.roleCode) && pathname === '/v2') {
+    if (isCliente(user.roleCode) && pathname === '/v2') {
       router.replace('/v2/portal');
+      return;
+    }
+    // Promotor aterriza en el plano — su herramienta operativa principal
+    if (user.roleCode === 'promotor' && pathname === '/v2') {
+      router.replace('/v2/plano');
     }
   }, [loading, user, router, pathname]);
 

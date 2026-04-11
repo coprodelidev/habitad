@@ -17,6 +17,8 @@ import {
   Bell,
 } from 'lucide-react';
 import { isAdmin, isStaff, isAuditor, isCliente, type RoleCode } from '@/lib/v2/permissions';
+
+const isPromotor = (r: RoleCode | null) => r === 'promotor';
 import { supabasePublic, supabaseV2 } from '@/lib/v2/supabaseV2';
 import { useRouter } from 'next/navigation';
 
@@ -28,8 +30,10 @@ interface NavItem {
   badge?: number;
 }
 
+// Inicio solo para roles de supervisión (admin, gerente, coordinador, supervisor, asistente, auditor).
+// El promotor no tiene dashboard — se redirige directamente al plano, su herramienta operativa.
 const NAV_BASE: NavItem[] = [
-  { href: '/v2', label: 'Inicio', icon: LayoutDashboard, visible: (r) => isStaff(r) || isAuditor(r) },
+  { href: '/v2', label: 'Inicio', icon: LayoutDashboard, visible: (r) => (isStaff(r) && !isPromotor(r)) || isAuditor(r) },
   { href: '/v2/plano', label: 'Plano', icon: Map, visible: (r) => isStaff(r) || isAuditor(r) },
   { href: '/v2/propiedades', label: 'Propiedades', icon: Building2, visible: (r) => isStaff(r) || isAuditor(r) },
   { href: '/v2/ventas', label: 'Ventas', icon: ClipboardList, visible: (r) => isStaff(r) || isAuditor(r) },
