@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabaseV2, supabasePublic } from '@/lib/v2/supabaseV2';
 import type { Venta } from '@/lib/v2/types';
 import { formatDateTime } from '@/lib/v2/format';
+import { DocumentDrawer } from '@/components/v2/DocumentDrawer';
 
 interface ChecklistItem {
   id: string;
@@ -23,6 +24,7 @@ export function ChecklistTab({ venta, canOperate }: { venta: Venta; canOperate: 
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingItem, setUploadingItem] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<{ path: string; title: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -106,7 +108,12 @@ export function ChecklistTab({ venta, canOperate }: { venta: Venta; canOperate: 
                 )}
               </div>
               {item?.url && (
-                <a href={item.url} target="_blank" className="text-sm text-indigo-600 hover:underline">Ver</a>
+                <button
+                  onClick={() => setViewing({ path: item.url!, title: d.label })}
+                  className="text-sm text-indigo-600 hover:underline"
+                >
+                  Ver
+                </button>
               )}
               {canOperate && (
                 <label className="cursor-pointer rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 hover:bg-slate-50">
@@ -123,6 +130,14 @@ export function ChecklistTab({ venta, canOperate }: { venta: Venta; canOperate: 
           );
         })}
       </div>
+      {viewing && (
+        <DocumentDrawer
+          bucket="v2-documentos"
+          path={viewing.path}
+          title={viewing.title}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </div>
   );
 }

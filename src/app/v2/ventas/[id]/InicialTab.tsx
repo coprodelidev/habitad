@@ -5,6 +5,7 @@ import type { Venta, Pago } from '@/lib/v2/types';
 import { PagoForm } from './PagoForm';
 import { supabaseV2 } from '@/lib/v2/supabaseV2';
 import { formatDate, formatMoney } from '@/lib/v2/format';
+import { DocumentDrawer } from '@/components/v2/DocumentDrawer';
 
 export function InicialTab({
   venta,
@@ -22,6 +23,7 @@ export function InicialTab({
   const [showForm, setShowForm] = useState(false);
   const [objetivo, setObjetivo] = useState(venta.monto_inicial_objetivo?.toString() ?? '');
   const [savingObj, setSavingObj] = useState(false);
+  const [viewing, setViewing] = useState<string | null>(null);
 
   const pagosInicial = pagos.filter((p) => p.tipo === 'inicial' && p.estado !== 'anulado');
   const totalInicial = pagosInicial.reduce((a, p) => a + Number(p.monto), 0);
@@ -120,7 +122,9 @@ export function InicialTab({
                   <td className="px-4 py-2">{p.banco ?? '—'}</td>
                   <td className="px-4 py-2 text-right">{formatMoney(p.monto, p.moneda)}</td>
                   <td className="px-4 py-2">
-                    {p.voucher_url ? <a href={p.voucher_url} target="_blank" className="text-indigo-600">Ver</a> : '—'}
+                    {p.voucher_url ? (
+                      <button onClick={() => setViewing(p.voucher_url!)} className="text-indigo-600 hover:underline">Ver</button>
+                    ) : '—'}
                   </td>
                 </tr>
               ))}
@@ -135,6 +139,14 @@ export function InicialTab({
           tipo="inicial"
           onClose={() => setShowForm(false)}
           onSaved={() => { setShowForm(false); onChange(); }}
+        />
+      )}
+      {viewing && (
+        <DocumentDrawer
+          bucket="v2-vouchers"
+          path={viewing}
+          title="Voucher de inicial"
+          onClose={() => setViewing(null)}
         />
       )}
     </div>

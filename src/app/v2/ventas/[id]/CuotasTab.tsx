@@ -5,6 +5,7 @@ import { supabaseV2 } from '@/lib/v2/supabaseV2';
 import type { Venta, Cuota, Pago } from '@/lib/v2/types';
 import { PagoForm } from './PagoForm';
 import { formatDate, formatMoney } from '@/lib/v2/format';
+import { DocumentDrawer } from '@/components/v2/DocumentDrawer';
 
 export function CuotasTab({
   venta,
@@ -23,6 +24,7 @@ export function CuotasTab({
 }) {
   const [showForm, setShowForm] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [viewing, setViewing] = useState<string | null>(null);
 
   const anularPago = async (pagoId: string) => {
     if (!confirm('¿Anular este pago? (Solo admin)')) return;
@@ -109,6 +111,7 @@ export function CuotasTab({
               <th className="px-4 py-2">Nº op.</th>
               <th className="px-4 py-2">Banco</th>
               <th className="px-4 py-2 text-right">Monto</th>
+              <th className="px-4 py-2">Voucher</th>
               <th className="px-4 py-2">Estado</th>
               <th className="px-4 py-2"></th>
             </tr>
@@ -121,6 +124,11 @@ export function CuotasTab({
                 <td className="px-4 py-2 font-mono">{p.numero_operacion ?? '—'}</td>
                 <td className="px-4 py-2">{p.banco ?? '—'}</td>
                 <td className="px-4 py-2 text-right">{formatMoney(p.monto, p.moneda)}</td>
+                <td className="px-4 py-2">
+                  {p.voucher_url ? (
+                    <button onClick={() => setViewing(p.voucher_url!)} className="text-indigo-600 hover:underline">Ver</button>
+                  ) : '—'}
+                </td>
                 <td className="px-4 py-2 capitalize">{p.estado}</td>
                 <td className="px-4 py-2 text-right">
                   {canAdmin && p.estado !== 'anulado' && (
@@ -140,6 +148,14 @@ export function CuotasTab({
           cuotaNumero={showForm || undefined}
           onClose={() => setShowForm(null)}
           onSaved={() => { setShowForm(null); onChange(); }}
+        />
+      )}
+      {viewing && (
+        <DocumentDrawer
+          bucket="v2-vouchers"
+          path={viewing}
+          title="Voucher de cuota"
+          onClose={() => setViewing(null)}
         />
       )}
     </div>
