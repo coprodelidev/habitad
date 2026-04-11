@@ -1,0 +1,165 @@
+// Tipos de dominio para Habitad v2.
+// Nota: tipados manualmente (no generados) por ahora para no depender
+// de supabase CLI. Mantener sincronizado con las tablas en schema v2.
+
+export type TipoPropiedad = 'casa' | 'terreno';
+export type EstadoFisico = 'libre' | 'separado' | 'ocupado' | 'bloqueado';
+export type EstadoComercial =
+  | 'sin_venta'
+  | 'separacion'
+  | 'inicial'
+  | 'cuotas'
+  | 'cancelacion'
+  | 'entregada';
+export type Moneda = 'PEN' | 'USD';
+export type EstadoVenta =
+  | 'separacion'
+  | 'inicial'
+  | 'cuotas'
+  | 'cancelada'
+  | 'entregada';
+export type TipoPago = 'separacion' | 'inicial' | 'cuota' | 'saldo_favor' | 'otro';
+export type EstadoPago = 'registrado' | 'conciliado' | 'anulado';
+export type EstadoCuota = 'pendiente' | 'parcial' | 'pagada' | 'vencida';
+export type TipoDocumento = 'hoja_separacion' | 'contrato' | 'cronograma' | 'recibo' | 'otro';
+
+export interface Etapa {
+  id: string;
+  codigo: string;
+  nombre: string;
+  descripcion?: string | null;
+  plano_url?: string | null;
+  orden: number;
+  activa: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Propiedad {
+  id: string;
+  cuh: string;
+  etapa_id: string | null;
+  tipo: TipoPropiedad;
+  modelo?: string | null;
+  partida_registral?: string | null;
+  manzana?: string | null;
+  lote?: string | null;
+  ubicacion?: string | null;
+  area_m2?: number | null;
+  precio_lista: number;
+  precio_venta?: number | null;
+  moneda: Moneda;
+  adicionales: Record<string, unknown>;
+  plano_coords?: { x: number; y: number; width?: number; height?: number } | null;
+  estado_fisico: EstadoFisico;
+  estado_comercial: EstadoComercial;
+  bloqueada_por?: string | null;
+  bloqueada_motivo?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Cliente {
+  id: string;
+  nombres: string;
+  apellidos: string;
+  dni: string;
+  telefono?: string | null;
+  email?: string | null;
+  direccion?: string | null;
+  auth_user_id?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Venta {
+  id: string;
+  propiedad_id: string;
+  cliente_id: string;
+  promotor_id?: string | null;
+  estado: EstadoVenta;
+  precio_acordado: number;
+  moneda: Moneda;
+  fecha_separacion: string;
+  fecha_vencimiento_separacion: string;
+  fecha_pago_separacion?: string | null;
+  fecha_limite_inicial?: string | null;
+  fecha_inicial_completa?: string | null;
+  fecha_contrato?: string | null;
+  fecha_cancelacion?: string | null;
+  motivo_cancelacion?: string | null;
+  meses_cuotas?: number | null;
+  monto_inicial_objetivo?: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Pago {
+  id: string;
+  venta_id: string;
+  tipo: TipoPago;
+  cuota_numero?: number | null;
+  fecha_deposito: string;
+  numero_operacion?: string | null;
+  banco?: string | null;
+  monto: number;
+  moneda: Moneda;
+  monto_pen?: number | null;
+  monto_usd?: number | null;
+  tc_sbs?: number | null;
+  voucher_url?: string | null;
+  estado: EstadoPago;
+  registrado_por?: string | null;
+  notas?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Cuota {
+  id: string;
+  venta_id: string;
+  numero: number;
+  fecha_vencimiento: string;
+  monto: number;
+  moneda: Moneda;
+  monto_pagado: number;
+  estado: EstadoCuota;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SaldoFavor {
+  id: string;
+  venta_id: string;
+  monto: number;
+  moneda: Moneda;
+  origen_pago_id?: string | null;
+  consumido: boolean;
+  consumido_en?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SaldoVenta {
+  venta_id: string;
+  propiedad_id: string;
+  cliente_id: string;
+  estado_venta: EstadoVenta;
+  precio_acordado: number;
+  moneda: Moneda;
+  total_separacion: number;
+  total_inicial: number;
+  total_cuotas: number;
+  total_pagado: number;
+  saldo_pendiente: number;
+  saldo_favor: number;
+}
+
+export interface Parametro {
+  clave: string;
+  valor: unknown;
+  descripcion?: string | null;
+  updated_by?: string | null;
+  updated_at: string;
+}

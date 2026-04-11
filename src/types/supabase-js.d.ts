@@ -1,23 +1,28 @@
 declare module '@supabase/supabase-js' {
   export interface User {
     id: string;
+    email?: string | null;
     user_metadata: Record<string, any>;
   }
   export interface SupabaseClient {
     auth: {
-      signOut(): unknown;
-      getUser(): { data: { user: any; }; error: any; } | PromiseLike<{ data: { user: any; }; error: any; }>;
+      signOut(): any;
+      getUser(): Promise<{ data: { user: User | null }; error: any }>;
       signInWithPassword(opts: { email: string; password: string }): Promise<{ data: { user: User | null }; error: Error | null }>;
       signUp(opts: { email: string; password: string; options: { data: Record<string, any> } }): Promise<{ data: any; error: Error | null }>;
     };
-    from(table: string): {
-      upsert(payload: { etapa: number; codigo_cuh: string; modelo: string; precio_cuh: number; partida: string; manzana: number; lote: number; ubicacion?: string | null; area_lote?: number | null; precio_promotor?: number | null; }[], arg1: { onConflict: string; ignoreDuplicates: boolean; }): { error: any; } | PromiseLike<{ error: any; }>;
-      insert(arg0: { id: any; email: string; phone: string; first_name: string; last_name: string; country_code: string; role_code: string; }): { error: any; } | PromiseLike<{ error: any; }>;
-      select: (query: string) => any;
-      update: (values: Record<string, any>) => any;
-      eq: (column: string, value: any) => any;
-      single: () => any;
+    from(table: string): any;
+    rpc(fn: string, args?: Record<string, any>): any;
+    schema(name: string): SupabaseClient;
+    storage: {
+      from(bucket: string): {
+        upload(path: string, file: File | Blob | ArrayBuffer, options?: { upsert?: boolean; contentType?: string }): Promise<{ data: { path: string } | null; error: any }>;
+        download(path: string): Promise<{ data: Blob | null; error: any }>;
+        getPublicUrl(path: string): { data: { publicUrl: string } };
+        createSignedUrl(path: string, expiresIn: number): Promise<{ data: { signedUrl: string } | null; error: any }>;
+        remove(paths: string[]): Promise<{ data: any; error: any }>;
+      };
     };
   }
-  export function createClient(url: string, key: string): SupabaseClient;
+  export function createClient(url: string, key: string, options?: any): SupabaseClient;
 }

@@ -1,0 +1,331 @@
+# Habitad 2.0 — Sistema de gestión de ventas, separaciones y pagos
+
+> Documento vivo. Última actualización: 2026-04-11.
+> Este documento es la fuente única de verdad para el alcance, reglas de negocio y arquitectura de Habitad 2.0. Cualquier cambio de alcance debe reflejarse aquí antes de implementarse.
+
+---
+
+## 1. Objetivo
+
+Construir un sistema nuevo (no parches sobre v1) para gestionar el ciclo completo de venta de lotes y casas:
+
+**Plano → Separación 24h → Inicial (3 meses) → Contrato + Cronograma → Cuotas → Reportes**
+
+Con control granular por roles, trazabilidad total (auditoría), multi-moneda (PEN/USD) y saldos reales.
+
+---
+
+## 2. Estrategia técnica
+
+### Coexistencia con v1
+
+- **Mismo repo** (`coprodelidev/habitad`) para mantener la integración con Vercel y no duplicar deploys.
+- **Rama `v2`** desde `main`. `main` sigue sirviendo la landing page y el dashboard v1 en producción sin que v2 los afecte.
+- **`src/` no se toca**: la landing pública (`/`, `/camposanto`, `/construimos`, `/proyectos`, etc.) y el dashboard v1 en `/dashboard` siguen funcionando como hoy.
+- **Todo el código nuevo vive en [src/app/v2/](../src/app/v2/)** con su propio `layout.tsx`, `page.tsx` y submódulos.
+- **Redirect por flag**: al loguearse, si `profiles.use_v2 = true` el usuario va a `/v2`; si no, a `/dashboard` (v1). Esto permite cutover gradual. Cuando v2 esté validado, se flipea el flag por defecto y se deprecia v1.
+
+### Supabase
+
+- **Mismo proyecto Supabase** (`kgcnlzpplosovhunylql`) — no creamos uno nuevo porque (a) el free tier ya está copado y (b) se evita duplicar Auth.
+- **Schema dedicado `v2`**: todas las tablas nuevas viven bajo `v2.*` (`v2.propiedades`, `v2.ventas`, `v2.pagos`, etc.). El schema `public` de v1 queda intacto.
+- Aislamiento real: las RLS, funciones y vistas se definen sobre `v2`. Rollback = `DROP SCHEMA v2 CASCADE`.
+- Migración de datos v1→v2 se hará con `INSERT ... SELECT` interno cuando llegue el momento del cutover, sin exportar nada.
+
+### Stack
+
+- Next.js 15 (App Router + Turbopack), TypeScript, Tailwind, Radix UI — ya en el repo.
+- Supabase JS, Supabase Auth (ya usado en v1), **Supabase Storage** para vouchers/documentos firmados.
+- `react-hook-form` + `zod` para formularios (ya en el repo).
+- Generación de PDFs: por definir (candidatos: `@react-pdf/renderer`, `pdf-lib`, o plantillas HTML + `puppeteer`). Ver "Decisiones pendientes".
+
+---
+
+## 3. Roles y permisos
+
+| Rol | CRUD propiedades | Registrar venta/separación | Registrar pagos | Editar/borrar pagos | Ver todos los reportes | Configurar sistema |
+|---|---|---|---|---|---|---|
+| **Administrador** | Sí | Sí | Sí | Sí | Sí | Sí |
+| **Promotor** | Solo lectura | Sí | Sí | No (solo admin) | Solo los suyos | No |
+| **Cliente** (portal) | No | No | No | No | Solo estado propio | No |
+| **Auditor / Contabilidad** | Solo lectura | No | No | No | Sí (exportar) | No |
+
+Decisiones clave:
+- El promotor **no puede eliminar pagos**. Si hay error, lo corrige admin y queda en la bitácora de auditoría.
+- El cliente tiene portal con acceso limitado: ver su estado y descargar documentos emitidos. Subir documentos firmados es opcional por configuración.
+- El auditor es solo-lectura + exportación. No edita nada. Diseñado para contabilidad externa.
+
+---
+
+## 4. Módulos
+
+### Módulo A — Propiedades (Inventario)
+Fuente única de verdad del inventario. Una propiedad = una unidad vendible (lote o casa).
+
+**Datos por propiedad**: Etapa, CUH, tipo (casa/terreno), modelo, partida registral, Manzana, Lote, ubicación, área (m²), precio de lista, precio de venta (si difiere), adicionales, moneda base.
+
+**Estados**:
+- **Físico**: `libre`, `separado`, `ocupado`, `bloqueado`
+- **Comercial**: `sin_venta`, `separacion`, `inicial`, `cuotas`, `cancelacion`, `entregada`
+
+Los estados se derivan automáticamente del flujo — nunca se editan manualmente salvo por admin en casos excepcionales (con log de auditoría).
+
+### Módulo B — Plano (General y por etapas)
+UI visual para operar la venta. Cada unidad es un polígono/círculo sobre una imagen o SVG del plano.
+
+**Colores**:
+- 🟢 Verde: libre
+- 🟡 Amarillo: separado (con vencimiento visible)
+- 🔴 Rojo: ocupado (cualquier estado comercial activo: inicial/cuotas)
+- 🔵 Celeste: bloqueado (solo admin puede pintar esto)
+
+**Interacción**:
+- Plano general (todas las etapas) y plano por etapa.
+- Click en unidad libre → modal con formulario rápido (nombres, apellidos, DNI, teléfono, correo) → crea separación con vencimiento automático 24h → unidad pasa a amarillo.
+- Click en unidad amarilla → muestra detalles de la separación y tiempo restante.
+- Click en unidad roja → ficha del cliente y estado de pagos.
+- Bloqueo manual (celeste) solo disponible para admin.
+
+### Módulo C — Venta / Separación
+Registra la separación y emite la hoja de separación (PDF).
+
+**Datos**:
+- Unidad (CUH/Mz/Lt/Etapa)
+- Cliente
+- Promotor asignado
+- Fecha de registro
+- **Fecha de vencimiento = fecha_registro + 24h** (automática)
+
+**PDF**: Hoja de Separación descargable.
+
+**Checklist documental**:
+- DNI del cliente
+- Voucher de separación
+- Hoja firmada (digital provisional; físico máximo 3 días)
+
+**Regla de vencimiento**: si a las 24h no se registró el pago de separación, un **job automático** (Supabase cron / edge function) libera la unidad y la pinta verde. Se notifica al promotor (notificación in-app; email queda para fase 2).
+
+Al confirmar el pago de separación, la unidad queda consolidada y se habilita el Módulo D (Inicial).
+
+### Módulo D — Inicial (3 meses)
+Control de abonos de la inicial durante una ventana de 3 meses desde la separación.
+
+**Campos por abono**:
+- Fecha de depósito
+- Nº de operación
+- Banco
+- Monto
+- Moneda (PEN/USD)
+- **Voucher (imagen o PDF) → obligatorio, se sube a Supabase Storage**
+
+**Cálculo automático**: total abonado inicial, saldo inicial pendiente, % completado.
+
+**Cuando la inicial está completa**: se habilita el Módulo E (Contrato).
+
+**Regla de plazo incompleto**: si pasan los 3 meses y la inicial NO está completa, **la venta se cancela automáticamente** y la unidad se libera (vuelve a verde). El promotor y el admin reciben notificación. Los abonos parciales quedan registrados como "venta cancelada" con historial — la decisión de devolver o no devolver el dinero es una conversación humana, el sistema solo refleja el estado.
+
+### Módulo E — Contrato + Cronograma
+Emisión automática del contrato y del cronograma de cuotas.
+
+**Formulario de generación**: toma datos acumulados (cliente, unidad, precio, inicial pagada) y pide los campos faltantes (plazo total de cuotas, tasa si aplica, fecha primera cuota).
+
+**PDFs generados**:
+- Contrato
+- Cronograma de cuotas mensuales
+
+**Estado de la propiedad**: pasa a `cuotas`.
+
+### Módulo F — Gestión de Pagos (Cuotas)
+Registra pagos de cuotas mensuales y mantiene el saldo real.
+
+**Regla crítica (corrige bug de v1)**: cuando un pago entra por un monto **mayor** al de la cuota del mes, el exceso **NO** se aplica automáticamente a las cuotas finales (como hace v1). El exceso queda como **saldo a favor del cliente** y se consume automáticamente contra la siguiente cuota cuando llegue su vencimiento.
+
+**Datos de cada pago**: fecha depósito, nº operación, banco, monto, moneda, voucher opcional (en cuotas el voucher no es obligatorio — ver Gestión de Pagos vs. Inicial).
+
+**Visualización siempre presente**: CUH, Mz, Lt, Etapa, Cliente (nombre + DNI).
+
+**Importación desde reporte bancario**:
+- Subida de archivo (Excel, CSV o PDF).
+- El sistema intenta matchear cada línea con un cliente/pago esperado.
+- Lo matcheado se registra; lo no matcheado queda en una cola "pendiente de asignación" para revisión manual.
+- Ver "Decisiones pendientes" para los detalles del algoritmo de matching.
+
+### Módulo G — Reportes
+Todos los reportes con rango de fechas + exportación a Excel y PDF.
+
+- **Reporte general**: fecha depósito, nº operación, DNI, descripción, monto, precio, bono, estado, total recaudación, saldo, promotor.
+- **Ventas por mes**: basado en el 1er abono de separación.
+- **Pagos por cliente**: separación / inicial / cuotas con saldo vigente.
+- **Reporte por situación y tipo**: casa vs. terreno, estado comercial.
+- **Reporte por promotor**: cartera, metas, comisiones (si aplica).
+
+### Módulo H — Administración (Backoffice)
+Solo para rol Admin.
+
+- **Usuarios y roles**: alta, baja, reasignación.
+- **Parámetros configurables**: plazo de separación (default 24h), plazo de inicial (default 3 meses), bancos permitidos, monedas, plantillas PDF (header, footer, logo, cláusulas).
+- **Auditoría**: tabla append-only con historial de cambios. Cada write a `v2.*` registra `quién`, `qué tabla`, `qué fila`, `qué cambió`, `cuándo`. Se implementa con triggers de Postgres.
+- **Importaciones**: Drive, saldos iniciales, reporte bancario histórico.
+- **Tipo de cambio SBS**: el sistema consulta el tipo de cambio diario de la SBS (Superintendencia de Banca, Seguros y AFP del Perú) para conversiones PEN↔USD. Ver "Decisiones pendientes".
+
+---
+
+## 5. Reglas de negocio consolidadas
+
+Respuestas finales a las preguntas abiertas durante el diseño:
+
+1. **Vencimiento de separación (24h)**: job automático libera la unidad (vuelve a verde) y notifica al promotor. No se archiva como "separación fallida" permanente, simplemente se libera.
+2. **Inicial incompleta (3 meses)**: la venta se cancela automáticamente, la unidad se libera. Los abonos parciales quedan registrados con el estado `venta_cancelada`.
+3. **Sobrepago en cuotas**: el exceso es **saldo a favor del cliente** y se aplica automáticamente a la siguiente cuota vencida. Jamás se mueve a cuotas finales automáticamente.
+4. **Importación reporte bancario**: se aceptan Excel, CSV y PDF. **Algoritmo de matching pendiente de definir** hasta que el cliente entregue un archivo real de muestra (ver notas abiertas).
+5. **Multi-moneda**: el tipo de cambio usado para conversiones es el de la **SBS del día del pago**. Se cachea diariamente.
+6. **Portal cliente**: **sí existirá**. Diseñamos las tablas y permisos (RLS) para soportarlo desde el día 1.
+7. **Voucher obligatorio en separación e inicial**: todo voucher se sube como imagen/PDF a **Supabase Storage** con un ID vinculado al registro del pago. Admin y auditor pueden verificar sin pedir el archivo al promotor. En cuotas el voucher es opcional (se registra el dato, el archivo es "nice to have").
+8. **Downgrade protegido**: ningún estado comercial puede retroceder automáticamente (ej. una propiedad en `cuotas` no vuelve a `inicial` por un pago incompleto posterior). Los retrocesos solo son posibles con acción de admin y quedan en auditoría.
+
+---
+
+## 6. Flujo resumido
+
+```
+[PLANO: unidad verde]
+        │
+        │ promotor click + form
+        ▼
+[SEPARACIÓN 24h: unidad amarilla]
+        │
+        ├─ pago separación en 24h ──────► [INICIAL habilitada]
+        │
+        └─ sin pago en 24h ──────────────► [unidad vuelve a verde, separación liberada]
+
+[INICIAL: 3 meses de abonos]
+        │
+        ├─ inicial completa ─────────────► [CONTRATO + CRONOGRAMA generados]
+        │
+        └─ 3 meses sin completar ────────► [venta cancelada, unidad libre]
+
+[CONTRATO firmado]
+        │
+        ▼
+[CUOTAS mensuales]
+        │
+        ├─ pago exacto ──────────────────► cuota saldada
+        ├─ pago menor ───────────────────► saldo parcial, cuota pendiente
+        └─ pago mayor ───────────────────► exceso a saldo a favor del cliente
+        │
+        ▼
+[REPORTES: recaudación, cartera, mora, promotor]
+```
+
+---
+
+## 7. Decisiones pendientes (notas abiertas)
+
+Estas decisiones no bloquean el arranque pero deben cerrarse antes de las fases correspondientes.
+
+### NOTA — Matching de reporte bancario (Módulo F)
+**Estado**: pendiente hasta que el cliente entregue un archivo real de muestra.
+
+Cuando tengamos el archivo real del banco, definir:
+- Qué columnas trae (fecha, nº operación, glosa, monto, moneda).
+- Qué campo usar como **llave de matching** (candidatos: nº operación registrado en el voucher, DNI en la glosa, nombre en la glosa).
+- Tolerancia de fechas (¿matchea un pago del día D con una cuota del día D±2?).
+- Qué hacer con duplicados y con pagos no identificados (cola manual).
+
+Mientras tanto, el módulo acepta el archivo y muestra un preview sin registrar nada.
+
+### NOTA — Generación de PDFs
+**Estado**: elegir librería antes del Módulo C.
+
+Candidatos:
+- **`@react-pdf/renderer`**: componentes React, fácil de mantener, limitación con tablas complejas y bordes.
+- **`pdf-lib`**: manipulación imperativa, más control, más código.
+- **Puppeteer con HTML template**: fidelidad total al diseño, pero pesa mucho en serverless.
+
+Recomendación preliminar: `@react-pdf/renderer` para contratos/cronogramas/hojas de separación, dado que el diseño de esos documentos es estructurado y no requiere fidelidad pixel-perfect.
+
+### NOTA — Tipo de cambio SBS
+**Estado**: confirmar fuente y cache.
+
+La SBS publica el tipo de cambio oficial diario. Opciones:
+- Endpoint público (si existe uno estable).
+- Scraping del sitio de la SBS (frágil).
+- Servicio de terceros (ej. APIs de tipo de cambio).
+
+Se cachea diariamente en `v2.tipo_cambio_sbs` (fecha, compra, venta) y se consulta desde ahí. Si el día no tiene dato (feriado), se usa el último disponible.
+
+### NOTA — Notificaciones
+**Estado**: MVP = notificaciones in-app. Email/WhatsApp para fase 2.
+
+Eventos que notifican:
+- Separación por vencer (1h antes del vencimiento).
+- Separación vencida y liberada.
+- Inicial completa → contrato disponible.
+- Cuota próxima a vencer (3 días antes).
+- Pago recibido correctamente.
+
+---
+
+## 8. Plan de trabajo y cronograma
+
+Según contrato:
+- **Desarrollo**: 3 semanas.
+- **Pruebas y feedback**: 1 semana.
+- **Compromiso del cliente**: feedback entregado dentro de 1 semana después del desarrollo.
+- **Pago**: 50% adelanto, 50% al finalizar.
+- **Precio COPRODELI**: 1300 € sin impuestos.
+- **No incluye**: dominio, hosting, base de datos (ya existen).
+- **Entregable**: sistema instalado, puesto en marcha y con usuarios configurados.
+
+### Fases técnicas sugeridas
+
+**Fase 0 — Setup (día 1-2)**
+- Rama `v2` creada.
+- Esqueleto `/v2` con layout vacío.
+- Schema `v2` en Supabase con tablas base (usuarios, roles, propiedades).
+- Flag `profiles.use_v2` + redirect en login.
+- RLS policies iniciales.
+
+**Fase 1 — Inventario y plano (semana 1)**
+- Módulo A: CRUD de propiedades, importación desde Excel.
+- Módulo B: plano visual con colores por estado.
+- Bloqueo manual (admin).
+
+**Fase 2 — Separación e inicial (semana 2)**
+- Módulo C: form de separación + generación de hoja PDF + checklist documental.
+- Módulo D: registro de abonos de inicial + upload de vouchers a Storage.
+- Job de vencimiento de separación (24h).
+- Job de cancelación automática de inicial (3 meses).
+
+**Fase 3 — Contrato, cuotas y reportes (semana 3)**
+- Módulo E: generación de contrato y cronograma.
+- Módulo F: registro de pagos de cuotas, saldo a favor, preview de importación bancaria.
+- Módulo G: reportes con filtros y exportación.
+- Módulo H: administración y auditoría.
+
+**Fase 4 — Pruebas y portal cliente (semana 4)**
+- Pruebas con usuarios reales.
+- Portal cliente (vista de estado + descarga de documentos).
+- Correcciones basadas en feedback.
+
+---
+
+## 9. Glosario
+
+- **CUH**: Código Único Habitacional (identificador de la unidad).
+- **Mz / Lt**: Manzana / Lote.
+- **Etapa**: subproyecto dentro del proyecto habitacional (ej. "Etapa 1", "Etapa Premium").
+- **Separación**: reserva temporal de una unidad con un cliente (24h).
+- **Inicial**: conjunto de abonos previos al contrato (ventana de 3 meses).
+- **Cuota**: pago mensual tras la firma del contrato.
+- **SBS**: Superintendencia de Banca, Seguros y AFP (Perú), publica el tipo de cambio oficial.
+- **Voucher**: comprobante de depósito bancario (imagen o PDF).
+
+---
+
+## 10. Contacto y responsables
+
+- **Cliente**: COPRODELI.
+- **Proyecto v1 Supabase**: `kgcnlzpplosovhunylql`.
+- **Repo**: `coprodelidev/habitad`, rama `v2`.
+- **Deploy**: Vercel (previews automáticos por rama).

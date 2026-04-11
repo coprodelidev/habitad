@@ -44,7 +44,7 @@ export default function LoginForm({ onAuthenticated }: Props) {
 
       const { data: prof, error: profError } = await supabase
         .from('profiles')
-        .select('role_id, roles ( code )')
+        .select('role_id, use_v2, roles ( code )')
         .eq('id', data.user.id)
         .single();
 
@@ -63,9 +63,11 @@ export default function LoginForm({ onAuthenticated }: Props) {
 
       onAuthenticated?.(data.user.id);
       console.log("🔄 Forzando actualización de UserContext");
-      await refreshProfile(); // Forzar recarga del perfil
-      console.log("➡️ Redirigiendo a /dashboard");
-      router.push('/dashboard');
+      await refreshProfile();
+
+      const target = prof?.use_v2 ? '/v2' : '/dashboard';
+      console.log("➡️ Redirigiendo a", target);
+      router.push(target);
     }
 
     setLoading(false);
