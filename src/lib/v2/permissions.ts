@@ -19,7 +19,7 @@ export const STAFF_ROLES: RoleCode[] = [
   'promotor',
 ];
 
-export const ADMIN_ROLES: RoleCode[] = ['administrador', 'gerente'];
+export const ADMIN_ROLES: RoleCode[] = ['administrador'];
 
 export function isAdmin(role?: string | null): boolean {
   return !!role && (ADMIN_ROLES as string[]).includes(role);
