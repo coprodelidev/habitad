@@ -70,8 +70,8 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
       if (ierr) throw ierr;
 
       if (tipo === 'cuota' && inserted?.id) {
-        // Ejecutar la aplicación del pago y saldo a favor
-        await supabasePublic.rpc('aplicar_pago_cuota', { p_pago_id: inserted.id });
+        // Ejecutar la aplicación del pago y saldo a favor (función vive en schema v2)
+        await supabaseV2.rpc('aplicar_pago_cuota', { p_pago_id: inserted.id });
       }
 
       onSaved();

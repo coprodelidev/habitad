@@ -35,13 +35,13 @@ export async function GET(req: NextRequest) {
 
   const results: Record<string, unknown> = {};
 
-  // 1) Liberar separaciones
-  const liberar = await sb.rpc('liberar_separaciones_vencidas' as any);
-  results.separaciones_liberadas = (liberar as any).data ?? liberar.error?.message ?? 0;
+  // 1) Liberar separaciones — la función vive en schema v2, debemos targetearla
+  const liberar = await v2.rpc('liberar_separaciones_vencidas');
+  results.separaciones_liberadas = liberar.data ?? liberar.error?.message ?? 0;
 
   // 2) Cancelar iniciales vencidas
-  const cancelar = await sb.rpc('cancelar_iniciales_vencidas' as any);
-  results.iniciales_canceladas = (cancelar as any).data ?? cancelar.error?.message ?? 0;
+  const cancelar = await v2.rpc('cancelar_iniciales_vencidas');
+  results.iniciales_canceladas = cancelar.data ?? cancelar.error?.message ?? 0;
 
   // 3) Marcar cuotas vencidas
   const hoy = new Date().toISOString().slice(0, 10);

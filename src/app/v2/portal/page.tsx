@@ -25,7 +25,7 @@ export default function PortalClientePage() {
     if (!user) return;
     (async () => {
       setLoading(true);
-      const { data: cli } = await supabasePublic.from('clientes').select('id').eq('auth_user_id', user.id);
+      const { data: cli } = await supabaseV2.from('clientes').select('id').eq('auth_user_id', user.id);
       const clienteIds = ((cli ?? []) as { id: string }[]).map((c) => c.id);
       if (clienteIds.length === 0) {
         setVentas([]);
