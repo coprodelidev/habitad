@@ -3,6 +3,41 @@
 > Documento vivo. Última actualización: 2026-04-11.
 > Este documento es la fuente única de verdad para el alcance, reglas de negocio y arquitectura de Habitad 2.0. Cualquier cambio de alcance debe reflejarse aquí antes de implementarse.
 
+## Estado actual (2026-04-11)
+
+- **En producción**: https://habitatcoprodeli.com (rama `main`, commit `0196e2f`)
+- **Preview v2**: https://habitad-git-v2-pies-projects-14d4cbfe.vercel.app
+- **Proyecto Supabase**: `kgcnlzpplosovhunylql` (Habitad, región us-east-2, PG 17)
+- **Rama**: `main` (ya contiene todo el código v2; `v2` branch sigue viva por si conviene continuar trabajo aislado)
+- **Default `profiles.use_v2`**: `true` (todos los nuevos registros van a v2 automáticamente)
+- **Cron Vercel**: diario `0 12 * * *` → `/api/v2/cron` (Hobby no permite hourly)
+- **CRON_SECRET**: ya configurado en Vercel envs (los 3 entornos)
+- **PostgREST**: schema `v2` expuesto vía Management API (`db_schema=public,graphql_public,v2`)
+
+### Credenciales demo (password común `Habitad2026!`)
+
+Los 4 roles oficiales del spec más 4 legacy v1 que también funcionan:
+
+| Rol del spec | Email | Landing al login |
+|---|---|---|
+| **Administrador** | `administrador@administrador.com` | `/v2` |
+| **Promotor** | `promotor@promotor.com` | `/v2/plano` |
+| **Cliente** | `cliente@cliente.com` | `/v2/portal` (con venta demo en C003 para ver flujo completo) |
+| **Auditor** | `auditor@auditor.com` | `/v2` (solo lectura + export) |
+
+| Rol legacy | Email | Permisos |
+|---|---|---|
+| Gerente | `gerencial@gerencial.com` | Staff supervisión (ve todo, **no** Administración — decisión de negocio) |
+| Supervisor | `supervisor@supervisor.com` | Staff supervisión (ve todo, sin Administración) |
+| Coordinador | `coordinador@coordinador.com` | Staff supervisión (ve todo, sin Administración) |
+| Asistente | `asistente@asistente.com` | Staff supervisión (ve todo, sin Administración) |
+
+### Datos demo en la DB
+
+- **26 propiedades** (importadas del Excel v1) asignadas a la etapa "Etapa 1"
+- **Venta C001 — Luis Rodriguez**: separación vigente (24h), sin pago registrado
+- **Venta C003 — Cliente Demo**: en estado `cuotas`, con cronograma completo (24 cuotas), 6 pagos registrados (1 sep + 3 inicial + 1 cuota pagada + 1 parcial), total pagado $19,768.33 / saldo $57,871.67. Vinculada al auth user `cliente@cliente.com` vía `auth_user_id`
+
 ---
 
 ## 1. Objetivo
@@ -175,14 +210,19 @@ Solo para rol Admin.
 
 Respuestas finales a las preguntas abiertas durante el diseño:
 
-1. **Vencimiento de separación (24h)**: job automático libera la unidad (vuelve a verde) y notifica al promotor. No se archiva como "separación fallida" permanente, simplemente se libera.
-2. **Inicial incompleta (3 meses)**: la venta se cancela automáticamente, la unidad se libera. Los abonos parciales quedan registrados con el estado `venta_cancelada`.
-3. **Sobrepago en cuotas**: el exceso es **saldo a favor del cliente** y se aplica automáticamente a la siguiente cuota vencida. Jamás se mueve a cuotas finales automáticamente.
+1. **Vencimiento de separación (24h)**: job automático libera la unidad (vuelve a verde) y notifica al promotor. No se archiva como "separación fallida" permanente, simplemente se libera. **Implementado** en `v2.liberar_separaciones_vencidas()` llamado diariamente vía cron Vercel.
+2. **Inicial incompleta (3 meses)**: la venta se cancela automáticamente, la unidad se libera. Los abonos parciales quedan registrados con el estado `venta_cancelada`. **Implementado** en `v2.cancelar_iniciales_vencidas()`.
+3. **Sobrepago en cuotas**: el exceso es **saldo a favor del cliente** y se aplica automáticamente a la siguiente cuota vencida. Jamás se mueve a cuotas finales automáticamente. **Implementado** en `v2.aplicar_pago_cuota(uuid)`.
 4. **Importación reporte bancario**: se aceptan Excel, CSV y PDF. **Algoritmo de matching pendiente de definir** hasta que el cliente entregue un archivo real de muestra (ver notas abiertas).
-5. **Multi-moneda**: el tipo de cambio usado para conversiones es el de la **SBS del día del pago**. Se cachea diariamente.
-6. **Portal cliente**: **sí existirá**. Diseñamos las tablas y permisos (RLS) para soportarlo desde el día 1.
-7. **Voucher obligatorio en separación e inicial**: todo voucher se sube como imagen/PDF a **Supabase Storage** con un ID vinculado al registro del pago. Admin y auditor pueden verificar sin pedir el archivo al promotor. En cuotas el voucher es opcional (se registra el dato, el archivo es "nice to have").
-8. **Downgrade protegido**: ningún estado comercial puede retroceder automáticamente (ej. una propiedad en `cuotas` no vuelve a `inicial` por un pago incompleto posterior). Los retrocesos solo son posibles con acción de admin y quedan en auditoría.
+5. **Multi-moneda**: el tipo de cambio usado para conversiones es el de la **SBS del día del pago**. Se cachea diariamente. **Implementado parcialmente**: UI para ingreso manual en `/v2/admin/tipo-cambio`. La integración automática con API SBS queda para fase 2.
+6. **Portal cliente**: **sí existirá**. Diseñamos las tablas y permisos (RLS) para soportarlo desde el día 1. **Implementado**: `/v2/portal`, con vinculación cliente↔auth_user_id. Subida de documentos firmados queda como opcional (spec lo marca "si se habilita").
+7. **Voucher obligatorio en separación e inicial**: todo voucher se sube como imagen/PDF a **Supabase Storage** con un ID vinculado al registro del pago. Admin y auditor pueden verificar sin pedir el archivo al promotor. En cuotas el voucher es opcional. **Implementado**: `voucherRequired` en `PagoForm.tsx` + bucket `v2-vouchers` con RLS de staff.
+8. **Downgrade protegido**: ningún estado comercial puede retroceder automáticamente. Los retrocesos solo son posibles con acción de admin y quedan en auditoría. **Implementado** en `v2.sync_propiedad_estado()` con ranking de estados (sin_venta<separacion<inicial<cuotas<entregada). Cancelación es la única excepción legítima.
+9. **Anular pago revierte aplicación**: al anular un pago, la función `v2.anular_pago(uuid)` revierte los efectos en cuotas (orden inverso) y borra los saldos a favor huérfanos generados por el pago.
+10. **Scoping por promotor**: el promotor solo ve pagos, cuotas, saldos y documentos de ventas donde él es `promotor_id`. Los roles de supervisión (gerente, coordinador, supervisor, asistente) ven todo. Admin también.
+11. **Gerente = staff operativo, NO admin**: decisión de negocio confirmada. Solo `administrador` accede a Administración, CRUD propiedades, editar/borrar pagos y gestionar usuarios.
+12. **Cliente restringido al portal**: un guard en el layout redirige cualquier ruta `/v2/*` (excepto `/v2/portal` y `/v2/print/*`) a `/v2/portal` cuando el rol es `cliente`. Esto evita que el cliente navegue manualmente.
+13. **Vercel cron en plan Hobby**: solo permite ejecución diaria. El cron se ejecuta una vez al día a las 12:00 UTC, no cada hora. Con SLA de 24h para separaciones y 3 meses para iniciales, cubre el caso de uso.
 
 ---
 
@@ -236,14 +276,11 @@ Cuando tengamos el archivo real del banco, definir:
 Mientras tanto, el módulo acepta el archivo y muestra un preview sin registrar nada.
 
 ### NOTA — Generación de PDFs
-**Estado**: elegir librería antes del Módulo C.
+**Estado**: ✅ resuelto vía HTML imprimible en lugar de librería PDF.
 
-Candidatos:
-- **`@react-pdf/renderer`**: componentes React, fácil de mantener, limitación con tablas complejas y bordes.
-- **`pdf-lib`**: manipulación imperativa, más control, más código.
-- **Puppeteer con HTML template**: fidelidad total al diseño, pero pesa mucho en serverless.
+Las rutas `/v2/print/separacion/[id]`, `/v2/print/contrato/[id]` y `/v2/print/cronograma/[id]` renderizan HTML optimizado para impresión con media-query `@print` (el botón "Imprimir" se oculta). El usuario puede elegir "Guardar como PDF" en el diálogo de impresión del navegador.
 
-Recomendación preliminar: `@react-pdf/renderer` para contratos/cronogramas/hojas de separación, dado que el diseño de esos documentos es estructurado y no requiere fidelidad pixel-perfect.
+Ventajas: cero dependencias nuevas, 100% maintainable con componentes React/Tailwind, se adapta a cualquier plantilla. Si en el futuro se requiere generación server-side (ej. adjuntar PDF a un email automático), migrar a `@react-pdf/renderer` o Puppeteer.
 
 ### NOTA — Tipo de cambio SBS
 **Estado**: confirmar fuente y cache.
@@ -259,9 +296,10 @@ Se cachea diariamente en `v2.tipo_cambio_sbs` (fecha, compra, venta) y se consul
 **Estado**: ✅ configurado el 2026-04-11 en los entornos `production`, `preview` y `development` del proyecto `habitad` (prj_HpxXh3zxCpor8DDvmMLaY0k8SeAy).
 
 - Valor generado aleatoriamente (32 bytes hex). Guardado también en `.env.local` local para pruebas, y como `env.CRON_SECRET` en Vercel (tipo `encrypted`).
-- Vercel Cron inyecta automáticamente `Authorization: Bearer <CRON_SECRET>` al llamar `/api/v2/cron` (hourly según `vercel.json`).
+- Vercel Cron inyecta automáticamente `Authorization: Bearer <CRON_SECRET>` al llamar `/api/v2/cron` (diario a las 12:00 UTC según `vercel.json`).
 - El endpoint además acepta `x-cron-secret` como fallback para ejecuciones manuales desde admin.
 - Si se necesita rotar: generar nuevo, actualizar en Vercel envs + `.env.local`, sin cambios de código.
+- Plan Vercel Hobby solo permite crons diarios; por eso no es hourly.
 
 ### NOTA — Build strict
 **Estado**: ✅ `next.config.ts` tiene `typescript.ignoreBuildErrors = false` y `eslint.ignoreDuringBuilds = false` desde 2026-04-11. Cualquier error de tipos o lint rompe el build y bloquea el deploy — eso queremos.
@@ -338,6 +376,69 @@ Según contrato:
 ## 10. Contacto y responsables
 
 - **Cliente**: COPRODELI.
-- **Proyecto v1 Supabase**: `kgcnlzpplosovhunylql`.
-- **Repo**: `coprodelidev/habitad`, rama `v2`.
-- **Deploy**: Vercel (previews automáticos por rama).
+- **Proyecto Supabase**: `kgcnlzpplosovhunylql` (schema `v2`, bucket-scoped RLS, PostgREST expone `public, graphql_public, v2`).
+- **Repo**: `coprodelidev/habitad`. Producción en rama `main`, branch `v2` queda viva como espacio de trabajo aislado.
+- **Deploy**: Vercel. Producción en `habitatcoprodeli.com` (trackea `main`). Preview por rama automático.
+
+---
+
+## 11. Migraciones Supabase aplicadas
+
+Todas se ejecutaron en vivo vía Management API (ver [reference_supabase_management.md](../../.claude/projects/c--Users-PROPIETARIO-Desktop-projects-helpy2025/memory/reference_supabase_management.md) si se necesita rehacerlas o rollback).
+
+Orden cronológico:
+
+| Archivo | Contenido |
+|---|---|
+| `20260411_v2_init.sql` | Schema v2, 15 tablas, 10 enums, vista `vw_saldos_venta`, triggers `updated_at` y `log_audit` |
+| `20260411_v2_rls.sql` | RLS policies iniciales por rol en todas las tablas v2 |
+| `20260411_v2_seed.sql` | Parámetros base del sistema (horas sep, meses inicial, bancos, moneda, plantillas) |
+| `20260411_v2_storage_and_fn.sql` | Buckets `v2-vouchers`, `v2-documentos`, `v2-planos`, `v2-reportes-banco` + RLS storage + funciones `sync_propiedad_estado`, `aplicar_pago_cuota`, `liberar_separaciones_vencidas`, `cancelar_iniciales_vencidas` |
+| `20260411_v2_fixes.sql` | Policies admin sobre `public.profiles` (admin ve/edita todos), revoke EXECUTE PUBLIC en funciones RPC |
+| `20260411_v2_rls_scoping.sql` | Scoping estricto del promotor: solo ve pagos, cuotas, saldos, documentos y checklist de ventas donde él es `promotor_id` |
+| `20260411_v2_downgrade_and_notify.sql` | Downgrade protection en `sync_propiedad_estado` + notificaciones a admins cuando expiran separaciones/iniciales |
+| `20260411_v2_anular_pago.sql` | Función `v2.anular_pago(uuid)` que revierte aplicación del pago en cuotas + borra saldos a favor asociados |
+| `20260411_v2_gerente_staff.sql` | Demotea `gerente` de admin a staff operativo. `v2.is_admin()` solo `'administrador'`. Notifications solo a admin real |
+| `20260411_v2_audit_user_fix.sql` | `v2.log_audit()` lee `request.jwt.claim.sub` primero (PostgREST context), fallback a `auth.uid()` |
+
+Fuera de migraciones:
+- `PATCH /v1/projects/.../postgrest` para agregar `v2` al `db_schema` expuesto
+- `ALTER TABLE public.profiles ALTER COLUMN use_v2 SET DEFAULT true; UPDATE public.profiles SET use_v2 = true` (para que nuevos registros vayan automáticamente a v2)
+- Bulk `UPDATE v2.propiedades SET etapa_id = ...` asignando las 26 propiedades a Etapa 1
+- Seed de C003 (venta Cliente Demo completa con 6 pagos + 24 cuotas + inicial completa + cronograma corregido al centavo)
+
+---
+
+## 12. Historial de decisiones / cambios
+
+### 2026-04-11
+- **Schema `v2` creado y desplegado en producción** (`habitatcoprodeli.com` sirve v2 desde commit `cced78e` → `0196e2f`)
+- **v1 no se borra**: `/dashboard` sigue accesible y la landing pública (`/`, `/camposanto`, `/proyectos`, etc.) sin tocar
+- **Gerente redefinido**: ya no es admin. Solo `administrador` accede a Administración
+- **Auto-rol cliente en signup**: verificado funcionando vía `RegisterForm.tsx` → `user_metadata.role = 'cliente'` → `syncProfile.ts` convierte a `role_id` al primer login
+- **Modal del plano ocupado (rojo)** muestra "ficha del cliente + estado de pagos" completo (spec módulo B cumplido)
+- **Anular pago** ahora revierte cuotas y borra saldos a favor huérfanos (antes solo marcaba como anulado)
+- **Redondeo en cronograma**: la última cuota absorbe la diferencia para que el total sume exactamente `precio_acordado - separacion - inicial`
+- **Parámetros admin** dejó de pedir JSON crudo. Ahora son formularios amigables (NumberField, SelectField, TagsField)
+- **Plano colores**: `emerald-600`, `amber-400`, `red-600`, `sky-600` con texto bold para contraste real
+- **Look & feel**: sidebar v2 idéntica a v1 (`bg-[rgb(14,8,201)]` + toggle plegar/desplegar)
+- **/v2/print/\*** bypassa el layout v2 (sin sidebar, sin guards de rol) para que el cliente pueda descargar sus documentos
+- **Cliente guard**: cualquier ruta `/v2/*` que no sea `/v2/portal` ni `/v2/print` rebota a `/v2/portal` cuando el rol es cliente
+- **Build strict**: `typescript.ignoreBuildErrors = false`, `eslint.ignoreDuringBuilds = false`
+
+---
+
+## 13. Cómo continuar (handoff)
+
+Si otra IA o persona toma el trabajo desde aquí:
+
+1. **Leer este documento** en orden de arriba a abajo. Las secciones 5 y 11 son las más densas; ahí está el "por qué" de cada decisión.
+2. **Para cambios de negocio** (plazos, bancos, plantillas): usar `/v2/admin/parametros` — ya no hay JSON crudo, todo es formulario.
+3. **Para cambios de código**: trabajar en `main` directamente (v2 ya está en producción) o crear rama desde `main`. No volver a trabajar en la rama `v2` — puede causar divergencias.
+4. **Para nuevas migraciones SQL**: crear archivo en `supabase/migrations/YYYYMMDD_descripcion.sql` y aplicar vía el snippet de `reference_supabase_management.md` en memoria. No intentar usar `pg` ni `psql` (fallan auth con el pooler de Supabase).
+5. **Para cron**: el endpoint `/api/v2/cron` se autentica con `CRON_SECRET` (ya en Vercel envs). Vercel lo llama diariamente. Para forzar ejecución manual: `curl -H "x-cron-secret: <valor>" https://habitatcoprodeli.com/api/v2/cron`.
+6. **Pendientes de fase 2**:
+   - Matching automático del reporte bancario (esperando archivo real del banco)
+   - Integración API SBS automática para tipo de cambio (hoy manual)
+   - Notificaciones por email / WhatsApp (hoy solo in-app)
+   - Portal cliente: subida de documentos firmados (spec lo marca "si se habilita")
