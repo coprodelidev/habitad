@@ -17,7 +17,7 @@ interface Audit {
 }
 
 export default function AuditoriaPage() {
-  const { user } = useV2User();
+  const { user, loading: loadingUser } = useV2User();
   const [rows, setRows] = useState<Audit[]>([]);
   const [loading, setLoading] = useState(true);
   const [tabla, setTabla] = useState('');
@@ -38,6 +38,7 @@ export default function AuditoriaPage() {
 
   useEffect(() => { load(); }, [tabla, op]);
 
+  if (loadingUser) return <div className="text-slate-500">Cargando…</div>;
   if (!canAdmin) return <div className="rounded bg-yellow-50 p-4 text-sm text-yellow-800">Solo administradores.</div>;
 
   return (

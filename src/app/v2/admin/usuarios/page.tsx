@@ -20,7 +20,7 @@ interface Profile {
 interface Role { id: string; code: string; label: string }
 
 export default function UsuariosPage() {
-  const { user } = useV2User();
+  const { user, loading: loadingUser } = useV2User();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +50,7 @@ export default function UsuariosPage() {
     load();
   };
 
+  if (loadingUser) return <div className="text-slate-500">Cargando…</div>;
   if (!canAdmin) return <div className="rounded bg-yellow-50 p-4 text-sm text-yellow-800">Solo administradores.</div>;
 
   return (

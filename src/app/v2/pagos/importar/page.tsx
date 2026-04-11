@@ -21,7 +21,7 @@ interface Fila {
 }
 
 export default function ImportarReporteBancarioPage() {
-  const { user } = useV2User();
+  const { user, loading: loadingUser } = useV2User();
   const [file, setFile] = useState<File | null>(null);
   const [rows, setRows] = useState<Fila[]>([]);
   const [saving, setSaving] = useState(false);
@@ -29,6 +29,9 @@ export default function ImportarReporteBancarioPage() {
   const [matches, setMatches] = useState<Record<string, string>>({});
 
   const canImport = isAdmin(user?.roleCode);
+  if (loadingUser) {
+    return <div className="text-slate-500">Cargando…</div>;
+  }
   if (!canImport) {
     return <div className="rounded bg-yellow-50 p-4 text-sm text-yellow-800">Solo administradores pueden importar reportes bancarios.</div>;
   }

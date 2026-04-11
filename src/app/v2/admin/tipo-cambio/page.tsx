@@ -9,7 +9,7 @@ import { formatDate } from '@/lib/v2/format';
 interface TC { fecha: string; compra: number; venta: number; fuente: string; }
 
 export default function TipoCambioPage() {
-  const { user } = useV2User();
+  const { user, loading: loadingUser } = useV2User();
   const [rows, setRows] = useState<TC[]>([]);
   const [form, setForm] = useState({ fecha: new Date().toISOString().slice(0, 10), compra: '', venta: '' });
   const [loading, setLoading] = useState(true);
@@ -34,6 +34,7 @@ export default function TipoCambioPage() {
     load();
   };
 
+  if (loadingUser) return <div className="text-slate-500">Cargando…</div>;
   if (!canAdmin) return <div className="rounded bg-yellow-50 p-4 text-sm text-yellow-800">Solo administradores.</div>;
 
   return (

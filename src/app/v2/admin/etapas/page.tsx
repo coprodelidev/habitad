@@ -7,7 +7,7 @@ import { isAdmin } from '@/lib/v2/permissions';
 import type { Etapa } from '@/lib/v2/types';
 
 export default function EtapasPage() {
-  const { user } = useV2User();
+  const { user, loading: loadingUser } = useV2User();
   const [items, setItems] = useState<Etapa[]>([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ codigo: '', nombre: '', descripcion: '' });
@@ -42,6 +42,7 @@ export default function EtapasPage() {
     load();
   };
 
+  if (loadingUser) return <div className="text-slate-500">Cargando…</div>;
   if (!canAdmin) return <div className="rounded bg-yellow-50 p-4 text-sm text-yellow-800">Solo administradores.</div>;
 
   return (

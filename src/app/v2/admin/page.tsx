@@ -14,7 +14,10 @@ const TILES = [
 ];
 
 export default function AdminHome() {
-  const { user } = useV2User();
+  const { user, loading } = useV2User();
+  if (loading) {
+    return <div className="text-slate-500">Cargando…</div>;
+  }
   if (!isAdmin(user?.roleCode)) {
     return <div className="rounded bg-yellow-50 p-4 text-sm text-yellow-800">Solo administradores.</div>;
   }

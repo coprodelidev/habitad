@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Map,
   Building2,
-  FileText,
   CreditCard,
   BarChart3,
   Settings,
@@ -17,21 +16,18 @@ import {
   Bell,
 } from 'lucide-react';
 import { isAdmin, isStaff, isAuditor, isCliente, type RoleCode } from '@/lib/v2/permissions';
-
-const isPromotor = (r: RoleCode | null) => r === 'promotor';
 import { supabasePublic, supabaseV2 } from '@/lib/v2/supabaseV2';
 import { useRouter } from 'next/navigation';
+
+const isPromotor = (r: RoleCode | null) => r === 'promotor';
 
 interface NavItem {
   href: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<any>;
   visible: (role: RoleCode | null) => boolean;
-  badge?: number;
 }
 
-// Inicio solo para roles de supervisión (admin, gerente, coordinador, supervisor, asistente, auditor).
-// El promotor no tiene dashboard — se redirige directamente al plano, su herramienta operativa.
 const NAV_BASE: NavItem[] = [
   { href: '/v2', label: 'Inicio', icon: LayoutDashboard, visible: (r) => (isStaff(r) && !isPromotor(r)) || isAuditor(r) },
   { href: '/v2/plano', label: 'Plano', icon: Map, visible: (r) => isStaff(r) || isAuditor(r) },
@@ -69,11 +65,8 @@ export function Sidebar({ role, email }: { role: RoleCode | null; email: string 
   };
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-30 flex w-64 flex-col bg-slate-900 text-slate-100">
-      <div className="flex h-16 items-center px-6 text-lg font-semibold tracking-tight border-b border-slate-800">
-        Habitad <span className="ml-2 rounded-md bg-indigo-500/20 px-2 py-0.5 text-xs text-indigo-300">v2</span>
-      </div>
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+    <div className="flex h-full flex-col">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-2">
         {NAV_BASE.filter((i) => i.visible(role)).map((item) => {
           const active = pathname === item.href || (item.href !== '/v2' && pathname?.startsWith(item.href));
           const Icon = item.icon;
@@ -82,14 +75,14 @@ export function Sidebar({ role, email }: { role: RoleCode | null; email: string 
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                active ? 'bg-indigo-500/20 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              className={`flex items-center gap-3 rounded-lg p-3 text-white transition-colors duration-200 ${
+                active ? 'bg-blue-900' : 'hover:bg-blue-800'
               }`}
             >
-              <Icon className="h-4 w-4" />
-              <span className="flex-1">{item.label}</span>
+              <Icon size={20} />
+              <span className="flex-1 font-medium">{item.label}</span>
               {showBadge && (
-                <span className="rounded-full bg-indigo-500 px-2 py-0.5 text-[10px] font-semibold text-white">
+                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-semibold text-blue-700">
                   {unread > 99 ? '99+' : unread}
                 </span>
               )}
@@ -97,18 +90,18 @@ export function Sidebar({ role, email }: { role: RoleCode | null; email: string 
           );
         })}
       </nav>
-      <div className="border-t border-slate-800 p-4 text-xs">
-        <div className="mb-2 text-slate-400">{email ?? 'Sin sesión'}</div>
-        <div className="mb-3 inline-block rounded bg-slate-800 px-2 py-0.5 text-slate-300">
+      <div className="border-t border-blue-900/60 p-4 text-xs text-white/80">
+        <div className="mb-1 truncate">{email ?? 'Sin sesión'}</div>
+        <div className="mb-3 inline-block rounded bg-blue-900 px-2 py-0.5 text-white">
           {role ?? 'sin rol'}
         </div>
         <button
           onClick={handleLogout}
-          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-300 hover:bg-slate-800 hover:text-white"
+          className="flex w-full items-center gap-3 rounded-lg p-3 text-white transition-colors hover:bg-blue-800"
         >
-          <LogOut className="h-4 w-4" /> Cerrar sesión
+          <LogOut size={18} /> <span className="font-medium">Cerrar sesión</span>
         </button>
       </div>
-    </aside>
+    </div>
   );
 }

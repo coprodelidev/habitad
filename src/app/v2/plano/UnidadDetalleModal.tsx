@@ -52,15 +52,18 @@ export function UnidadDetalleModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-xl rounded-lg bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b px-5 py-3">
-          <h2 className="text-lg font-semibold">Detalle de unidad</h2>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        className="inline-block max-h-[90vh] w-auto min-w-[360px] max-w-md overflow-y-auto rounded-lg bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b px-4 py-2">
+          <h2 className="text-base font-semibold">Detalle de unidad</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
         </div>
-        <div className="p-5 text-sm">
-          <div className="mb-3 font-mono text-xs text-slate-500">{propiedad.cuh}</div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+        <div className="p-4 text-sm">
+          <div className="mb-2 font-mono text-xs text-slate-500">{propiedad.cuh}</div>
+          <div className="space-y-0.5">
             <Row k="Mz / Lt" v={`${propiedad.manzana ?? '—'} / ${propiedad.lote ?? '—'}`} />
             <Row k="Tipo" v={propiedad.tipo} />
             <Row k="Modelo" v={propiedad.modelo ?? '—'} />

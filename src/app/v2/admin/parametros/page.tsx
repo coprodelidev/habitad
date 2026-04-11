@@ -8,7 +8,7 @@ import { isAdmin } from '@/lib/v2/permissions';
 interface Param { clave: string; valor: any; descripcion: string | null; }
 
 export default function ParametrosPage() {
-  const { user } = useV2User();
+  const { user, loading: loadingUser } = useV2User();
   const [items, setItems] = useState<Param[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -41,6 +41,7 @@ export default function ParametrosPage() {
     }
   };
 
+  if (loadingUser) return <div className="text-slate-500">Cargando…</div>;
   if (!canAdmin) return <div className="rounded bg-yellow-50 p-4 text-sm text-yellow-800">Solo administradores.</div>;
 
   return (

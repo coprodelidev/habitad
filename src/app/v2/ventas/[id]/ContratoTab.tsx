@@ -43,8 +43,11 @@ export function ContratoTab({
     setGenerating(true);
     setError(null);
     try {
-      // 1) Crear filas de cuotas
+      // 1) Crear filas de cuotas con la última absorbiendo el redondeo
       if (cuotas.length === 0) {
+        const cuotaBase = Math.round((saldoCuotas / mesesNum) * 100) / 100;
+        const totalRedondeado = cuotaBase * (mesesNum - 1);
+        const ultimaCuota = Math.round((saldoCuotas - totalRedondeado) * 100) / 100;
         const rows = Array.from({ length: mesesNum }, (_, i) => {
           const fecha = new Date(primeraCuota);
           fecha.setMonth(fecha.getMonth() + i);
@@ -52,7 +55,7 @@ export function ContratoTab({
             venta_id: venta.id,
             numero: i + 1,
             fecha_vencimiento: fecha.toISOString().slice(0, 10),
-            monto: Math.round(montoCuota * 100) / 100,
+            monto: i === mesesNum - 1 ? ultimaCuota : cuotaBase,
             moneda: venta.moneda,
             estado: 'pendiente' as const,
           };
