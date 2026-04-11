@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabaseV2 } from '@/lib/v2/supabaseV2';
 import { useV2User } from '@/lib/v2/useV2User';
-import { isStaff } from '@/lib/v2/permissions';
+import { isStaff, isAdmin } from '@/lib/v2/permissions';
 import type { Propiedad, Etapa, Venta } from '@/lib/v2/types';
 import { NuevaSeparacionModal } from './NuevaSeparacionModal';
 import { UnidadDetalleModal } from './UnidadDetalleModal';
@@ -21,6 +21,7 @@ export default function PlanoPage() {
   const [creatingSep, setCreatingSep] = useState<Propiedad | null>(null);
 
   const canOperate = isStaff(user?.roleCode);
+  const canBlock = isAdmin(user?.roleCode);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -65,6 +66,21 @@ export default function PlanoPage() {
     }
     if (p.estado_fisico === 'libre') setCreatingSep(p);
     else setSelected(p);
+  };
+
+  const handleRightClick = async (e: React.MouseEvent, p: Propiedad) => {
+    e.preventDefault();
+    if (!canBlock) return;
+    if (p.estado_fisico === 'libre') {
+      const motivo = window.prompt('Motivo del bloqueo (queda en auditoría):') ?? '';
+      if (!motivo) return;
+      await supabaseV2.from('propiedades').update({ estado_fisico: 'bloqueado', bloqueada_motivo: motivo }).eq('id', p.id);
+      load();
+    } else if (p.estado_fisico === 'bloqueado') {
+      if (!confirm('¿Desbloquear esta unidad?')) return;
+      await supabaseV2.from('propiedades').update({ estado_fisico: 'libre', bloqueada_motivo: null }).eq('id', p.id);
+      load();
+    }
   };
 
   return (
@@ -121,8 +137,9 @@ export default function PlanoPage() {
               <button
                 key={p.id}
                 onClick={() => handleClick(p)}
+                onContextMenu={(e) => handleRightClick(e, p)}
                 className={`relative flex min-h-[96px] flex-col items-center justify-center rounded-lg p-3 text-white shadow transition ${color}`}
-                title={`${p.cuh} — ${p.manzana ?? ''}/${p.lote ?? ''}`}
+                title={`${p.cuh} — ${p.manzana ?? ''}/${p.lote ?? ''}${canBlock ? ' (click derecho: bloquear/desbloquear)' : ''}`}
               >
                 <span className="text-xs opacity-80">{p.manzana ?? '—'}/{p.lote ?? '—'}</span>
                 <span className="mt-0.5 font-mono text-xs">{p.cuh}</span>

@@ -63,7 +63,7 @@ export default function ImportarReporteBancarioPage() {
       const up = await supabasePublic.storage.from('v2-reportes-banco').upload(path, file, { upsert: false });
       if (up.error || !up.data) throw up.error ?? new Error('Upload failed');
 
-      const { data: userRes } = await supabaseV2.auth.getUser();
+      const { data: userRes } = await supabasePublic.auth.getUser();
       const format = file.name.toLowerCase().endsWith('.csv') ? 'csv'
         : file.name.toLowerCase().endsWith('.pdf') ? 'pdf'
         : 'excel';

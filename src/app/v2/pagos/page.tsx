@@ -18,7 +18,7 @@ interface PagoRow {
   estado: string;
   venta?: {
     id: string;
-    propiedad?: { cuh: string; manzana: string | null; lote: string | null } | null;
+    propiedad?: { cuh: string; manzana: string | null; lote: string | null; etapa?: { nombre: string } | null } | null;
     cliente?: { nombres: string; apellidos: string; dni: string } | null;
   } | null;
 }
@@ -37,7 +37,7 @@ export default function PagosPage() {
       setLoading(true);
       let query = supabaseV2
         .from('pagos')
-        .select('*, venta:ventas(id, propiedad:propiedades(cuh, manzana, lote), cliente:clientes(nombres, apellidos, dni))')
+        .select('*, venta:ventas(id, propiedad:propiedades(cuh, manzana, lote, etapa:etapas(nombre)), cliente:clientes(nombres, apellidos, dni))')
         .order('fecha_deposito', { ascending: false })
         .limit(500);
       if (desde) query = query.gte('fecha_deposito', desde);
@@ -97,6 +97,8 @@ export default function PagosPage() {
             <tr>
               <th className="px-3 py-2">Fecha</th>
               <th className="px-3 py-2">CUH</th>
+              <th className="px-3 py-2">Mz/Lt</th>
+              <th className="px-3 py-2">Etapa</th>
               <th className="px-3 py-2">Cliente</th>
               <th className="px-3 py-2">DNI</th>
               <th className="px-3 py-2">Tipo</th>
@@ -109,13 +111,15 @@ export default function PagosPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={10} className="px-3 py-6 text-center text-slate-500">Cargando…</td></tr>
+              <tr><td colSpan={12} className="px-3 py-6 text-center text-slate-500">Cargando…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={10} className="px-3 py-6 text-center text-slate-500">Sin pagos</td></tr>
+              <tr><td colSpan={12} className="px-3 py-6 text-center text-slate-500">Sin pagos</td></tr>
             ) : filtered.map((p) => (
               <tr key={p.id} className="border-t border-slate-100 hover:bg-slate-50">
                 <td className="px-3 py-1.5">{formatDate(p.fecha_deposito)}</td>
                 <td className="px-3 py-1.5 font-mono text-xs">{p.venta?.propiedad?.cuh ?? '—'}</td>
+                <td className="px-3 py-1.5">{p.venta?.propiedad ? `${p.venta.propiedad.manzana ?? '—'}/${p.venta.propiedad.lote ?? '—'}` : '—'}</td>
+                <td className="px-3 py-1.5">{p.venta?.propiedad?.etapa?.nombre ?? '—'}</td>
                 <td className="px-3 py-1.5">{p.venta?.cliente ? `${p.venta.cliente.nombres} ${p.venta.cliente.apellidos}` : '—'}</td>
                 <td className="px-3 py-1.5">{p.venta?.cliente?.dni ?? '—'}</td>
                 <td className="px-3 py-1.5 capitalize">{p.tipo}{p.cuota_numero ? ` #${p.cuota_numero}` : ''}</td>

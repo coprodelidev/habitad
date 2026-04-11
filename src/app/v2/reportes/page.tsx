@@ -91,6 +91,30 @@ export default function ReportesPage() {
     XLSX.writeFile(wb, `reporte_${reporte}_${today()}.xlsx`);
   };
 
+  const exportarPDF = () => {
+    // Genera una ventana imprimible con la tabla actual; el usuario elige "Guardar como PDF"
+    const w = window.open('', '_blank');
+    if (!w) return;
+    const title = `Reporte ${reporte} — ${today()}`;
+    const tableHtml = document.querySelector('[data-report-table]')?.innerHTML ?? '';
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>
+      <style>
+        body { font-family: -apple-system, sans-serif; font-size: 12px; padding: 24px; }
+        h1 { font-size: 16px; margin: 0 0 12px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #cbd5e1; padding: 4px 6px; text-align: left; }
+        thead { background: #f1f5f9; }
+        .meta { color: #64748b; margin-bottom: 12px; font-size: 11px; }
+      </style>
+    </head><body>
+      <h1>${title}</h1>
+      <div class="meta">${desde ? 'Desde: ' + desde : ''} ${hasta ? '· Hasta: ' + hasta : ''} · ${rows.length} filas</div>
+      ${tableHtml}
+      <script>window.onload=()=>{setTimeout(()=>window.print(),300)}</script>
+    </body></html>`);
+    w.document.close();
+  };
+
   return (
     <div>
       <h1 className="mb-2 text-2xl font-semibold">Reportes</h1>
@@ -125,11 +149,14 @@ export default function ReportesPage() {
         <button onClick={exportarExcel} disabled={rows.length === 0} className="h-9 rounded-md border border-slate-300 bg-white px-4 text-sm hover:bg-slate-50 disabled:opacity-50">
           Exportar Excel
         </button>
+        <button onClick={exportarPDF} disabled={rows.length === 0} className="h-9 rounded-md border border-slate-300 bg-white px-4 text-sm hover:bg-slate-50 disabled:opacity-50">
+          Exportar PDF
+        </button>
       </div>
 
       {error && <div className="mb-3 rounded bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white" data-report-table>
         <ReporteTable reporte={reporte} rows={rows} loading={loading} />
       </div>
     </div>

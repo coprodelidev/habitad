@@ -52,7 +52,7 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
         voucherUrl = up.data.path;
       }
 
-      const { data: userRes } = await supabaseV2.auth.getUser();
+      const { data: userRes } = await supabasePublic.auth.getUser();
       const payload: any = {
         venta_id: venta.id,
         tipo,

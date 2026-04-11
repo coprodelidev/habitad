@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { supabaseV2 } from '@/lib/v2/supabaseV2';
+import { supabaseV2, supabasePublic } from '@/lib/v2/supabaseV2';
 import type { Propiedad } from '@/lib/v2/types';
 import { formatMoney } from '@/lib/v2/format';
 
@@ -55,7 +55,7 @@ export function NuevaSeparacionModal({
       const vencimiento = new Date(now.getTime() + horas * 3600 * 1000);
 
       // 3) Crear la venta en estado 'separacion'
-      const { data: userData } = await supabaseV2.auth.getUser();
+      const { data: userData } = await supabasePublic.auth.getUser();
       const { error: vErr } = await supabaseV2.from('ventas').insert({
         propiedad_id: propiedad.id,
         cliente_id: clienteId,
