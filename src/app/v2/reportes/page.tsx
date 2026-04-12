@@ -18,6 +18,7 @@ export default function ReportesPage() {
   const cargar = async () => {
     setLoading(true);
     setError(null);
+    setRows([]);
     try {
       if (reporte === 'general') {
         const { data, error } = await supabaseV2

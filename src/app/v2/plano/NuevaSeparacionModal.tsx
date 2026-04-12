@@ -30,18 +30,21 @@ export function NuevaSeparacionModal({
     setSaving(true);
     setError(null);
     try {
-      // 1) Cliente: upsert por DNI
+      // 1) Cliente: buscar por DNI vía RPC (SECURITY DEFINER, bypasa RLS)
+      //    para evitar duplicados sin exponer clientes de otros promotores.
       let clienteId: string | null = null;
-      const existing = await supabaseV2.from('clientes').select('id').eq('dni', form.dni).maybeSingle();
-      if (existing.data) {
-        clienteId = existing.data.id;
+      const { data: existingId } = await supabaseV2.rpc('buscar_cliente_por_dni', { p_dni: form.dni });
+      if (existingId) {
+        clienteId = existingId as string;
       } else {
+        const { data: userData } = await supabasePublic.auth.getUser();
         const ins = await supabaseV2.from('clientes').insert({
           nombres: form.nombres,
           apellidos: form.apellidos,
           dni: form.dni,
           telefono: form.telefono || null,
           email: form.email || null,
+          created_by: userData.user?.id ?? null,
         }).select('id').single();
         if (ins.error) throw ins.error;
         clienteId = ins.data!.id;
