@@ -4,12 +4,61 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
 import { ArrowLeft, Download, FileSpreadsheet, GripVertical, Plus, Search, Trash2, X, RotateCcw } from 'lucide-react';
-import { supabaseV2 } from '@/lib/v2/supabaseV2';
+import { supabaseV2, supabasePublic } from '@/lib/v2/supabaseV2';
 import { useV2User } from '@/lib/v2/useV2User';
 import { isAdmin, isAuditor, isStaff } from '@/lib/v2/permissions';
-import { ENTITIES, type Field, type Entity, getNestedValue, formatCell } from './schema';
+import { ENTITIES, type Field, type Entity, getNestedValue, formatCell, groupColor } from './schema';
 
 const isPromotor = (r: string | null | undefined) => r === 'promotor';
+
+// Trae los profiles (promotor, registrado_por) y los fusiona en cada fila.
+// PostgREST no puede hacer FK cross-schema (v2 → public), así que hacemos
+// una segunda query a public.profiles y anexamos los datos como
+// `row.promotor` y `row.registrado`.
+async function enrichWithProfiles(entityKey: string, rows: any[]): Promise<any[]> {
+  if (!rows.length) return rows;
+
+  const ids = new Set<string>();
+  const idGetters: Record<string, (r: any) => string | undefined> = {
+    ventas: (r) => r?.promotor_id,
+    pagos: (r) => r?.venta?.promotor_id,
+    cuotas: (r) => r?.venta?.promotor_id,
+  };
+  const regGetters: Record<string, (r: any) => string | undefined> = {
+    pagos: (r) => r?.registrado_por,
+  };
+
+  const g = idGetters[entityKey];
+  const rg = regGetters[entityKey];
+  for (const r of rows) {
+    if (g) { const id = g(r); if (id) ids.add(id); }
+    if (rg) { const id = rg(r); if (id) ids.add(id); }
+  }
+  if (ids.size === 0) return rows;
+
+  const { data: profiles } = await supabasePublic
+    .from('profiles')
+    .select('id, first_name, last_name, email')
+    .in('id', Array.from(ids));
+
+  const byId: Record<string, any> = {};
+  for (const p of (profiles ?? []) as any[]) byId[p.id] = p;
+
+  return rows.map((r) => {
+    const out = { ...r };
+    if (entityKey === 'ventas' && r.promotor_id) {
+      out.promotor = byId[r.promotor_id] ?? null;
+    }
+    if (entityKey === 'pagos') {
+      if (r.venta?.promotor_id) out.venta = { ...r.venta, promotor: byId[r.venta.promotor_id] ?? null };
+      if (r.registrado_por) out.registrado = byId[r.registrado_por] ?? null;
+    }
+    if (entityKey === 'cuotas' && r.venta?.promotor_id) {
+      out.venta = { ...r.venta, promotor: byId[r.venta.promotor_id] ?? null };
+    }
+    return out;
+  });
+}
 
 export default function ConstructorReportesPage() {
   const { user, loading: loadingUser } = useV2User();
@@ -70,7 +119,12 @@ export default function ConstructorReportesPage() {
       }
       const { data, error } = await q;
       if (error) throw error;
-      setRows(data ?? []);
+
+      // Enriquecimiento cliente-side de profiles (promotor, registrado_por).
+      // PostgREST no puede resolver FK cross-schema (v2 → public), así que
+      // hacemos una query adicional y fusionamos en memoria.
+      const enriched = await enrichWithProfiles(entity.key, data ?? []);
+      setRows(enriched);
     } catch (e: any) {
       setError(e?.message ?? String(e));
     } finally {
@@ -259,8 +313,10 @@ export default function ConstructorReportesPage() {
             ) : (
               Object.entries(availableByGroup).map(([group, fields]) => (
                 <div key={group} className="mb-3">
-                  <div className="mb-1 px-2 text-[10px] font-semibold uppercase text-slate-400">{group}</div>
-                  <div className="space-y-1">
+                  <div className={`mb-1 inline-block rounded px-2 py-0.5 text-[10px] font-semibold uppercase ${groupColor(group)}`}>
+                    {group}
+                  </div>
+                  <div className="mt-1 space-y-1">
                     {fields.map((f) => (
                       <div
                         key={f.key}
@@ -268,7 +324,7 @@ export default function ConstructorReportesPage() {
                         onDragStart={(e) => onDragStartField(f, e)}
                         onDoubleClick={() => addField(f)}
                         className="group flex cursor-grab items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs hover:border-indigo-300 hover:bg-indigo-50 active:cursor-grabbing"
-                        title="Arrastra a la derecha o haz doble click"
+                        title={`Arrastra a la derecha o haz doble click\nPath: ${f.path}`}
                       >
                         <span className="flex-1 text-slate-800">{f.label}</span>
                         <button
@@ -324,11 +380,12 @@ export default function ConstructorReportesPage() {
                   >
                     <GripVertical className="h-3 w-3 cursor-grab text-slate-400" />
                     <span className="text-[10px] text-slate-400">{idx + 1}.</span>
+                    <span className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${groupColor(f.group)}`}>{f.group}</span>
                     <span className="text-slate-800">{f.label}</span>
-                    <span className="text-[10px] text-slate-400">({f.group})</span>
                     <button
                       onClick={() => removeField(idx)}
                       className="rounded p-0.5 text-slate-400 hover:bg-red-100 hover:text-red-600"
+                      title="Quitar columna"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -361,7 +418,10 @@ export default function ConstructorReportesPage() {
                     <tr>
                       {selected.map((f, idx) => (
                         <th key={f.key + idx} className="whitespace-nowrap border-b border-slate-200 px-3 py-2">
-                          {f.label}
+                          <div className="flex flex-col gap-0.5">
+                            <span className={`w-fit rounded px-1 py-0 text-[9px] normal-case ${groupColor(f.group)}`}>{f.group}</span>
+                            <span>{f.label}</span>
+                          </div>
                         </th>
                       ))}
                     </tr>
