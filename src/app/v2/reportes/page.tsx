@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import * as XLSX from 'xlsx';
+import { Wand2 } from 'lucide-react';
 import { supabaseV2 } from '@/lib/v2/supabaseV2';
 import { formatDate, formatMoney } from '@/lib/v2/format';
 
@@ -118,8 +120,18 @@ export default function ReportesPage() {
 
   return (
     <div>
-      <h1 className="mb-2 text-2xl font-semibold">Reportes</h1>
-      <p className="mb-4 text-sm text-slate-500">Rango de fechas + exportación a Excel</p>
+      <div className="mb-4 flex items-start justify-between">
+        <div>
+          <h1 className="mb-2 text-2xl font-semibold">Reportes</h1>
+          <p className="text-sm text-slate-500">Reportes predefinidos con rango de fechas y exportación a Excel/PDF</p>
+        </div>
+        <Link
+          href="/v2/reportes/constructor"
+          className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-500"
+        >
+          <Wand2 className="h-4 w-4" /> Constructor de reportes
+        </Link>
+      </div>
 
       <div className="mb-4 flex flex-wrap items-end gap-2">
         <div>
