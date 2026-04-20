@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { supabasePublic } from '@/lib/v2/supabaseV2';
 import { useV2User } from '@/lib/v2/useV2User';
@@ -13,6 +13,7 @@ interface Profile {
   first_name: string | null;
   last_name: string | null;
   role_id: string | null;
+  sap_sales_person_code: number | null;
   use_v2: boolean;
   updated_at: string;
   roles?: { code: string; label: string } | null;
@@ -24,6 +25,15 @@ interface Role {
   label: string;
 }
 
+function parseSapCode(raw: string): number | null {
+  const t = raw.trim();
+  if (!t) return null;
+  if (!/^\d+$/.test(t)) return Number.NaN;
+  const n = Number(t);
+  if (!Number.isInteger(n) || n <= 0) return Number.NaN;
+  return n;
+}
+
 export default function UsuariosPage() {
   const { user, loading: loadingUser } = useV2User();
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -33,22 +43,30 @@ export default function UsuariosPage() {
   const [creatingPromotor, setCreatingPromotor] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [createOk, setCreateOk] = useState<string | null>(null);
+  const [sapCodes, setSapCodes] = useState<Record<string, string>>({});
+  const [sapSavingId, setSapSavingId] = useState<string | null>(null);
+  const [sapError, setSapError] = useState<string | null>(null);
+  const [sapOk, setSapOk] = useState<string | null>(null);
   const [newPromotor, setNewPromotor] = useState({
     email: '',
     password: '',
     first_name: '',
     last_name: '',
+    sap_sales_person_code: '',
   });
 
   const canAdmin = isAdmin(user?.roleCode);
-  const promotorRoleId = roles.find((r) => r.code === 'promotor')?.id ?? null;
+  const promotorRoleId = useMemo(
+    () => roles.find((r) => r.code === 'promotor')?.id ?? null,
+    [roles],
+  );
 
   const load = async () => {
     setLoading(true);
     const [p, r] = await Promise.all([
       supabasePublic
         .from('profiles')
-        .select('id, email, first_name, last_name, role_id, use_v2, updated_at, roles ( code, label )')
+        .select('id, email, first_name, last_name, role_id, sap_sales_person_code, use_v2, updated_at, roles ( code, label )')
         .order('updated_at', { ascending: false }),
       supabasePublic.from('roles').select('id, code, label').order('label'),
     ]);
@@ -61,6 +79,12 @@ export default function UsuariosPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    const next: Record<string, string> = {};
+    for (const p of profiles) next[p.id] = p.sap_sales_person_code != null ? String(p.sap_sales_person_code) : '';
+    setSapCodes(next);
+  }, [profiles]);
+
   const updateRole = async (id: string, role_id: string) => {
     await supabasePublic.from('profiles').update({ role_id }).eq('id', id);
     load();
@@ -69,6 +93,32 @@ export default function UsuariosPage() {
   const toggleV2 = async (id: string, use_v2: boolean) => {
     await supabasePublic.from('profiles').update({ use_v2 }).eq('id', id);
     load();
+  };
+
+  const saveSapCode = async (id: string) => {
+    setSapError(null);
+    setSapOk(null);
+
+    const parsed = parseSapCode(sapCodes[id] ?? '');
+    if (Number.isNaN(parsed)) {
+      setSapError('Codigo SAP invalido. Usa solo numeros positivos.');
+      return;
+    }
+
+    setSapSavingId(id);
+    try {
+      const { error } = await supabasePublic
+        .from('profiles')
+        .update({ sap_sales_person_code: parsed })
+        .eq('id', id);
+      if (error) throw error;
+      setSapOk('Codigo SAP guardado.');
+      await load();
+    } catch (e: any) {
+      setSapError(e?.message ?? 'No se pudo guardar el codigo SAP.');
+    } finally {
+      setSapSavingId(null);
+    }
   };
 
   const createPromotor = async (event: FormEvent<HTMLFormElement>) => {
@@ -80,9 +130,14 @@ export default function UsuariosPage() {
     const password = newPromotor.password;
     const firstName = newPromotor.first_name.trim();
     const lastName = newPromotor.last_name.trim();
+    const sapCodeParsed = parseSapCode(newPromotor.sap_sales_person_code);
 
     if (!email || !password || !firstName || !lastName) {
       setCreateError('Completa email, clave, nombres y apellidos.');
+      return;
+    }
+    if (Number.isNaN(sapCodeParsed) || sapCodeParsed == null) {
+      setCreateError('Debes ingresar un SalesPersonCode SAP numerico valido.');
       return;
     }
     if (password.length < 6) {
@@ -111,6 +166,7 @@ export default function UsuariosPage() {
             second_name: '',
             second_last_name: '',
             role: 'promotor',
+            sap_sales_person_code: sapCodeParsed,
           },
         },
       });
@@ -120,7 +176,7 @@ export default function UsuariosPage() {
       const createdUserId = (data as any)?.user?.id ?? (data as any)?.session?.user?.id ?? null;
 
       if (createdUserId) {
-        await supabasePublic
+        const { error: profileError } = await supabasePublic
           .from('profiles')
           .update({
             role_id: promotorRoleId,
@@ -128,12 +184,20 @@ export default function UsuariosPage() {
             first_name: firstName,
             last_name: lastName,
             email,
+            sap_sales_person_code: sapCodeParsed,
           })
           .eq('id', createdUserId);
+        if (profileError) throw profileError;
       }
 
       setCreateOk('Promotor creado correctamente.');
-      setNewPromotor({ email: '', password: '', first_name: '', last_name: '' });
+      setNewPromotor({
+        email: '',
+        password: '',
+        first_name: '',
+        last_name: '',
+        sap_sales_person_code: '',
+      });
       await load();
     } catch (err: any) {
       setCreateError(err?.message ?? 'No se pudo crear el promotor.');
@@ -165,7 +229,7 @@ export default function UsuariosPage() {
       {showCreatePromotor && (
         <form onSubmit={createPromotor} className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50/40 p-4">
           <div className="mb-3 text-sm font-medium text-slate-700">Alta rapida de promotor</div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <label className="text-xs text-slate-600">
               Email
               <input
@@ -189,6 +253,18 @@ export default function UsuariosPage() {
               />
             </label>
             <label className="text-xs text-slate-600">
+              SalesPersonCode SAP
+              <input
+                type="text"
+                inputMode="numeric"
+                value={newPromotor.sap_sales_person_code}
+                onChange={(e) => setNewPromotor((v) => ({ ...v, sap_sales_person_code: e.target.value }))}
+                className="mt-1 w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
+                placeholder="Ej: 95"
+                required
+              />
+            </label>
+            <label className="text-xs text-slate-600 md:col-span-1">
               Nombres
               <input
                 type="text"
@@ -198,7 +274,7 @@ export default function UsuariosPage() {
                 required
               />
             </label>
-            <label className="text-xs text-slate-600">
+            <label className="text-xs text-slate-600 md:col-span-2">
               Apellidos
               <input
                 type="text"
@@ -221,10 +297,13 @@ export default function UsuariosPage() {
             >
               {creatingPromotor ? 'Creando...' : 'Guardar promotor'}
             </button>
-            <p className="text-xs text-slate-500">Se crea con rol promotor y uso v2 activado.</p>
+            <p className="text-xs text-slate-500">Se crea con rol promotor, uso v2 y codigo SAP.</p>
           </div>
         </form>
       )}
+
+      {sapError && <div className="mb-3 rounded bg-red-50 p-3 text-sm text-red-700">{sapError}</div>}
+      {sapOk && <div className="mb-3 rounded bg-emerald-50 p-3 text-sm text-emerald-700">{sapOk}</div>}
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
@@ -233,6 +312,7 @@ export default function UsuariosPage() {
               <th className="px-3 py-2">Usuario</th>
               <th className="px-3 py-2">Email</th>
               <th className="px-3 py-2">Rol</th>
+              <th className="px-3 py-2">SalesPersonCode SAP</th>
               <th className="px-3 py-2">Usar v2</th>
               <th className="px-3 py-2">Actualizado</th>
             </tr>
@@ -240,7 +320,7 @@ export default function UsuariosPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
                   Cargando...
                 </td>
               </tr>
@@ -262,6 +342,26 @@ export default function UsuariosPage() {
                         </option>
                       ))}
                     </select>
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={sapCodes[p.id] ?? ''}
+                        onChange={(e) => setSapCodes((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                        className="h-8 w-24 rounded border border-slate-300 px-2 text-xs"
+                        placeholder="Codigo"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => saveSapCode(p.id)}
+                        disabled={sapSavingId === p.id}
+                        className="h-8 rounded border border-slate-300 bg-white px-2 text-xs hover:bg-slate-50 disabled:opacity-50"
+                      >
+                        {sapSavingId === p.id ? 'Guardando...' : 'Guardar'}
+                      </button>
+                    </div>
                   </td>
                   <td className="px-3 py-1.5">
                     <input type="checkbox" checked={p.use_v2} onChange={(e) => toggleV2(p.id, e.target.checked)} />
