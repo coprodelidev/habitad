@@ -33,16 +33,28 @@ export interface SapVentaLike {
   cliente?: {
     nombres?: string | null;
     apellidos?: string | null;
+    segundo_nombre?: string | null;
+    apellido_paterno?: string | null;
+    apellido_materno?: string | null;
     dni?: string | null;
     telefono?: string | null;
     email?: string | null;
     direccion?: string | null;
     ubigeo?: string | null;
     ubigeo_code?: string | null;
+    ubigeo_cod?: string | null;
     distrito?: string | null;
     provincia?: string | null;
     departamento?: string | null;
     urbanizacion?: string | null;
+    // Dirección estructurada (Fase A)
+    tipo_via?: string | null;
+    zona_nombre?: string | null;
+    direccion_mz?: string | null;
+    direccion_lt?: string | null;
+    numero_puerta?: string | null;
+    interior?: string | null;
+    referencia?: string | null;
   } | null;
   cuotas?: Array<{
     numero?: number | null;
@@ -244,6 +256,24 @@ function buildCardCode(dni: string): string {
   return `C${dni.slice(0, 8).padStart(8, '0')}`;
 }
 
+// Concatena los campos estructurados de dirección al formato que SAP espera en Street
+function buildSapStreet(c: SapVentaLike['cliente']): string {
+  if (!c) return '';
+  const parts: string[] = [];
+  if (c.tipo_via && c.zona_nombre) parts.push(`${c.tipo_via} ${c.zona_nombre}`);
+  else if (c.zona_nombre) parts.push(String(c.zona_nombre));
+  if (c.direccion_mz) parts.push(`Mz ${c.direccion_mz}`);
+  if (c.direccion_lt) parts.push(`Lt ${c.direccion_lt}`);
+  if (c.numero_puerta) parts.push(`Nº ${c.numero_puerta}`);
+  if (c.interior) parts.push(`Int ${c.interior}`);
+  const joined = parts.join(' - ').trim();
+  return joined || String(c.direccion ?? '').trim();
+}
+
+function ubigeoCode(c: SapVentaLike['cliente']): string {
+  return String(c?.ubigeo_cod ?? c?.ubigeo_code ?? c?.ubigeo ?? '').trim();
+}
+
 export function buildMaestroClientesAoa(ventas: SapVentaLike[], promotores: SapPromotorProfile[]) {
   const byPromotor = getPromotorMap(promotores);
   const rows: unknown[][] = [MAESTRO_HEADERS];
@@ -261,11 +291,12 @@ export function buildMaestroClientesAoa(ventas: SapVentaLike[], promotores: SapP
     const tipo = venta.propiedad?.tipo ?? 'casa';
     const moneda = venta.moneda ?? venta.propiedad?.moneda ?? 'PEN';
     const debitorAccount = getDebitorAccount(tipo, moneda);
-    const ubigeo = String(venta.cliente?.ubigeo_code ?? venta.cliente?.ubigeo ?? '').trim();
+    const ubigeo = ubigeoCode(venta.cliente);
     const distrito = String(venta.cliente?.distrito ?? '').trim();
     const provincia = String(venta.cliente?.provincia ?? '').trim();
     const departamento = String(venta.cliente?.departamento ?? '').trim();
     const urbanizacion = String(venta.cliente?.urbanizacion ?? '').trim();
+    const street = buildSapStreet(venta.cliente);
 
     rows.push([
       cardCode,
@@ -295,7 +326,7 @@ export function buildMaestroClientesAoa(ventas: SapVentaLike[], promotores: SapP
       0,
       'bo_BillTo',
       'FISCAL',
-      String(venta.cliente?.direccion ?? '').trim(),
+      street,
       ubigeo,
       distrito,
       provincia,

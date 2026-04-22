@@ -77,7 +77,7 @@ export default function ExportacionSapPage() {
           id, estado, precio_acordado, moneda, fecha_separacion, fecha_inicial_completa, fecha_contrato,
           promotor_id, meses_cuotas, monto_inicial_objetivo,
           propiedad:propiedades(cuh, tipo, modelo, manzana, lote, area_m2, moneda, adicionales, etapa:etapas(codigo, nombre)),
-          cliente:clientes(nombres, apellidos, dni, telefono, email, direccion),
+          cliente:clientes(nombres, apellidos, segundo_nombre, apellido_paterno, apellido_materno, dni, telefono, email, direccion, tipo_via, zona_nombre, direccion_mz, direccion_lt, numero_puerta, interior, referencia, ubigeo_cod, urbanizacion),
           cuotas:cuotas(numero, fecha_vencimiento, monto, estado),
           pagos:pagos(tipo, fecha_deposito, monto, moneda, tc_sbs, estado)
         `,
@@ -89,7 +89,23 @@ export default function ExportacionSapPage() {
 
       if (ventasError) throw ventasError;
 
-      const ventasList = (ventasData ?? []) as unknown as SapVentaLike[];
+      let ventasList = (ventasData ?? []) as unknown as SapVentaLike[];
+
+      // Enriquecer con ubigeos (PostgREST no resuelve FK cross-schema automáticamente
+      // para ubigeos cuando supabaseV2 ya está en v2). Hacemos join en cliente.
+      const ubigeoCods = Array.from(new Set(ventasList.map((v) => v.cliente?.ubigeo_cod).filter(Boolean))) as string[];
+      if (ubigeoCods.length > 0) {
+        const { data: ubigeos } = await supabaseV2.from('ubigeos').select('*').in('codigo', ubigeoCods);
+        const byCod: Record<string, any> = {};
+        for (const u of (ubigeos ?? []) as any[]) byCod[u.codigo] = u;
+        ventasList = ventasList.map((v) => {
+          if (!v.cliente?.ubigeo_cod) return v;
+          const u = byCod[v.cliente.ubigeo_cod];
+          if (!u) return v;
+          return { ...v, cliente: { ...v.cliente, distrito: u.distrito, provincia: u.provincia, departamento: u.departamento } };
+        });
+      }
+
       setVentas(ventasList);
 
       const promoterIds = Array.from(

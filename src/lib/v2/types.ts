@@ -71,7 +71,30 @@ export interface Cliente {
   created_by?: string | null;
   created_at: string;
   updated_at: string;
+  // Fase A — campos estructurados
+  segundo_nombre?: string | null;
+  apellido_paterno?: string | null;
+  apellido_materno?: string | null;
+  tipo_via?: string | null;
+  zona_nombre?: string | null;
+  direccion_mz?: string | null;
+  direccion_lt?: string | null;
+  numero_puerta?: string | null;
+  interior?: string | null;
+  referencia?: string | null;
+  ubigeo_cod?: string | null;
+  urbanizacion?: string | null;
 }
+
+export interface Ubigeo {
+  codigo: string;
+  distrito: string;
+  provincia: string;
+  departamento: string;
+}
+
+export type ModalidadPago = 'contado' | 'cuotas_sin_interes' | 'cuotas_con_interes' | 'bono_mivivienda';
+export type CuentaRecaudadora = 'sin_data' | 'con_data_terreno' | 'con_data_casas';
 
 export interface Venta {
   id: string;
@@ -93,6 +116,23 @@ export interface Venta {
   monto_inicial_objetivo?: number | null;
   created_at: string;
   updated_at: string;
+  // Fase C — modalidad precontrato
+  modalidad_pago?: ModalidadPago | null;
+  tasa_interes_anual?: number | null;
+  penalidad_retiro?: number | null;
+  cuenta_recaudadora?: CuentaRecaudadora | null;
+  mora_diaria?: number | null;
+  // Fase D — MiVivienda
+  mivivienda_expediente?: string | null;
+  mivivienda_fecha_ingreso?: string | null;
+  mivivienda_fecha_beneficiario?: string | null;
+  mivivienda_fecha_caducidad?: string | null;
+  mivivienda_bono_monto?: number | null;
+  mivivienda_ahorro?: number | null;
+  credito_hipotecario_banco?: string | null;
+  credito_hipotecario_monto?: number | null;
+  credito_hipotecario_fecha_inicio?: string | null;
+  credito_hipotecario_fecha_fin?: string | null;
 }
 
 export interface Pago {

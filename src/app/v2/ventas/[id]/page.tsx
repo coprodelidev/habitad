@@ -14,8 +14,9 @@ import { InicialTab } from './InicialTab';
 import { ContratoTab } from './ContratoTab';
 import { CuotasTab } from './CuotasTab';
 import { ChecklistTab } from './ChecklistTab';
+import { MiViviendaTab } from './MiViviendaTab';
 
-type Tab = 'resumen' | 'separacion' | 'inicial' | 'contrato' | 'cuotas' | 'checklist';
+type Tab = 'resumen' | 'separacion' | 'inicial' | 'contrato' | 'cuotas' | 'checklist' | 'mivivienda';
 
 export default function VentaDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -72,6 +73,7 @@ export default function VentaDetailPage() {
     { k: 'inicial', label: 'Inicial', visible: venta.estado !== 'separacion' || !!venta.fecha_pago_separacion },
     { k: 'contrato', label: 'Contrato', visible: ['inicial', 'cuotas', 'entregada'].includes(venta.estado) },
     { k: 'cuotas', label: 'Cuotas', visible: ['cuotas', 'entregada'].includes(venta.estado) },
+    { k: 'mivivienda', label: 'MiVivienda', visible: propiedad?.tipo === 'casa' && venta.modalidad_pago === 'bono_mivivienda' },
   ];
 
   return (
@@ -127,6 +129,7 @@ export default function VentaDetailPage() {
       {tab === 'inicial' && <InicialTab venta={venta} pagos={pagos} canOperate={canOperate} canAdmin={canAdmin} onChange={load} />}
       {tab === 'contrato' && <ContratoTab venta={venta} propiedad={propiedad} cliente={cliente} pagos={pagos} cuotas={cuotas} canOperate={canOperate} onChange={load} />}
       {tab === 'cuotas' && <CuotasTab venta={venta} cuotas={cuotas} pagos={pagos} canOperate={canOperate} canAdmin={canAdmin} onChange={load} />}
+      {tab === 'mivivienda' && <MiViviendaTab venta={venta} canOperate={canOperate} onChange={load} />}
     </div>
   );
 }
