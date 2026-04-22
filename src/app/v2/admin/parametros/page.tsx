@@ -148,6 +148,137 @@ export default function ParametrosPage() {
           />
         </Card>
       </div>
+
+      {/* ========= DATOS LEGALES DE LA EMPRESA ========= */}
+      <h2 className="mt-10 mb-3 text-lg font-semibold text-slate-900">Datos legales de la empresa</h2>
+      <div className="space-y-5">
+        <Card title="Razón social" desc="Nombre legal completo que aparece en los precontratos."
+          saved={ok === 'empresa_nombre'} saving={saving === 'empresa_nombre'}>
+          <TextField value={String(items.empresa_nombre ?? '')} onSave={(v) => save('empresa_nombre', v)} />
+        </Card>
+        <Card title="RUC" desc="RUC de la empresa."
+          saved={ok === 'empresa_ruc'} saving={saving === 'empresa_ruc'}>
+          <TextField value={String(items.empresa_ruc ?? '')} onSave={(v) => save('empresa_ruc', v)} />
+        </Card>
+        <Card title="Representante legal — Nombre" desc="Apoderada(o) que firma los precontratos."
+          saved={ok === 'empresa_representante_nombre'} saving={saving === 'empresa_representante_nombre'}>
+          <TextField value={String(items.empresa_representante_nombre ?? '')} onSave={(v) => save('empresa_representante_nombre', v)} />
+        </Card>
+        <Card title="Representante legal — DNI" desc="DNI del apoderado(a)."
+          saved={ok === 'empresa_representante_dni'} saving={saving === 'empresa_representante_dni'}>
+          <TextField value={String(items.empresa_representante_dni ?? '')} onSave={(v) => save('empresa_representante_dni', v)} />
+        </Card>
+        <Card title="Representante legal — Partida" desc="Partida electrónica de los poderes."
+          saved={ok === 'empresa_representante_partida'} saving={saving === 'empresa_representante_partida'}>
+          <TextField value={String(items.empresa_representante_partida ?? '')} onSave={(v) => save('empresa_representante_partida', v)} />
+        </Card>
+        <Card title="Domicilio fiscal" desc="Dirección fiscal completa que aparece en los precontratos."
+          saved={ok === 'empresa_domicilio_fiscal'} saving={saving === 'empresa_domicilio_fiscal'}>
+          <TextField value={String(items.empresa_domicilio_fiscal ?? '')} onSave={(v) => save('empresa_domicilio_fiscal', v)} />
+        </Card>
+      </div>
+
+      {/* ========= DATOS DEL PROYECTO ========= */}
+      <h2 className="mt-10 mb-3 text-lg font-semibold text-slate-900">Datos del proyecto inmobiliario</h2>
+      <div className="space-y-5">
+        <Card title="Nombre comercial del proyecto" desc="Nombre que se mencionará en los precontratos."
+          saved={ok === 'proyecto_nombre'} saving={saving === 'proyecto_nombre'}>
+          <TextField value={String(items.proyecto_nombre ?? '')} onSave={(v) => save('proyecto_nombre', v)} />
+        </Card>
+        <Card title="Partida registral del terreno matriz"
+          desc="Número de partida registral donde está inscrito el terreno del proyecto."
+          saved={ok === 'proyecto_partida_registral'} saving={saving === 'proyecto_partida_registral'}>
+          <TextField value={String(items.proyecto_partida_registral ?? '')} onSave={(v) => save('proyecto_partida_registral', v)} />
+        </Card>
+        <Card title="Ubicación del proyecto"
+          desc="Dirección descriptiva del terreno matriz (sector, lote, distrito, provincia, departamento)."
+          saved={ok === 'proyecto_ubicacion'} saving={saving === 'proyecto_ubicacion'}>
+          <TextField value={String(items.proyecto_ubicacion ?? '')} onSave={(v) => save('proyecto_ubicacion', v)} />
+        </Card>
+        <Card title="Área total del terreno" desc="Área del terreno matriz (ej. 70 Has)."
+          saved={ok === 'proyecto_terreno_area'} saving={saving === 'proyecto_terreno_area'}>
+          <TextField value={String(items.proyecto_terreno_area ?? '')} onSave={(v) => save('proyecto_terreno_area', v)} />
+        </Card>
+      </div>
+
+      {/* ========= CUENTAS BANCARIAS ========= */}
+      <h2 className="mt-10 mb-3 text-lg font-semibold text-slate-900">Cuentas bancarias recaudadoras (BANBIF)</h2>
+      <div className="space-y-5">
+        <Card title="Cuenta SIN DATA (separación/inicial)" desc="Nombre de la cuenta para separaciones e iniciales."
+          saved={ok === 'cuenta_banbif_sin_data'} saving={saving === 'cuenta_banbif_sin_data'}>
+          <TextField value={String(items.cuenta_banbif_sin_data ?? '')} onSave={(v) => save('cuenta_banbif_sin_data', v)} />
+        </Card>
+        <Card title="Cuenta CON DATA — Terrenos" desc="Nombre de la cuenta para cuotas de terrenos."
+          saved={ok === 'cuenta_banbif_con_data_terreno'} saving={saving === 'cuenta_banbif_con_data_terreno'}>
+          <TextField value={String(items.cuenta_banbif_con_data_terreno ?? '')} onSave={(v) => save('cuenta_banbif_con_data_terreno', v)} />
+        </Card>
+        <Card title="Cuenta CON DATA — Casas" desc="Nombre de la cuenta para cuotas de casas."
+          saved={ok === 'cuenta_banbif_con_data_casas'} saving={saving === 'cuenta_banbif_con_data_casas'}>
+          <TextField value={String(items.cuenta_banbif_con_data_casas ?? '')} onSave={(v) => save('cuenta_banbif_con_data_casas', v)} />
+        </Card>
+      </div>
+
+      {/* ========= MORA Y PENALIDADES ========= */}
+      <h2 className="mt-10 mb-3 text-lg font-semibold text-slate-900">Mora y penalidades</h2>
+      <div className="space-y-5">
+        <Card title="Mora diaria — Terreno" desc="Monto en soles por día de atraso en cuotas de terreno."
+          saved={ok === 'mora_diaria_terreno'} saving={saving === 'mora_diaria_terreno'}>
+          <NumberField suffix="S/ por día" value={Number(items.mora_diaria_terreno ?? 2.5)} min={0}
+            onSave={(n) => save('mora_diaria_terreno', n)} />
+        </Card>
+        <Card title="Mora diaria — Casa" desc="Monto en soles por día de atraso en cuotas de casa."
+          saved={ok === 'mora_diaria_casa'} saving={saving === 'mora_diaria_casa'}>
+          <NumberField suffix="S/ por día" value={Number(items.mora_diaria_casa ?? 2)} min={0}
+            onSave={(n) => save('mora_diaria_casa', n)} />
+        </Card>
+        <Card title="Tasa de mora anual" desc="Interés moratorio anual (%) cuando se vence el plazo."
+          saved={ok === 'tasa_mora_anual'} saving={saving === 'tasa_mora_anual'}>
+          <NumberField suffix="% anual" value={Number(items.tasa_mora_anual ?? 12)} min={0} max={100}
+            onSave={(n) => save('tasa_mora_anual', n)} />
+        </Card>
+        <Card title="Tasa de interés CON DATA" desc="Tasa anual para cuotas con interés (default)."
+          saved={ok === 'tasa_interes_con_data_default'} saving={saving === 'tasa_interes_con_data_default'}>
+          <NumberField suffix="% anual" value={Number(items.tasa_interes_con_data_default ?? 8)} min={0} max={100}
+            onSave={(n) => save('tasa_interes_con_data_default', n)} />
+        </Card>
+        <Card title="Penalidad por retiro — Terreno"
+          desc="Monto a retener si el comprador se retira del contrato (terreno)."
+          saved={ok === 'penalidad_retiro_terreno'} saving={saving === 'penalidad_retiro_terreno'}>
+          <NumberField suffix="S/" value={Number(items.penalidad_retiro_terreno ?? 3500)} min={0}
+            onSave={(n) => save('penalidad_retiro_terreno', n)} />
+        </Card>
+        <Card title="Penalidad por retiro — Casa"
+          desc="Monto a retener si el comprador se retira del contrato (casa)."
+          saved={ok === 'penalidad_retiro_casa'} saving={saving === 'penalidad_retiro_casa'}>
+          <NumberField suffix="S/" value={Number(items.penalidad_retiro_casa ?? 3000)} min={0}
+            onSave={(n) => save('penalidad_retiro_casa', n)} />
+        </Card>
+        <Card title="Penalidad MiVivienda — No elegible"
+          desc="Penalidad si el expediente resulta no elegible (insubsanable)."
+          saved={ok === 'penalidad_mivivienda_no_elegible'} saving={saving === 'penalidad_mivivienda_no_elegible'}>
+          <NumberField suffix="S/" value={Number(items.penalidad_mivivienda_no_elegible ?? 5000)} min={0}
+            onSave={(n) => save('penalidad_mivivienda_no_elegible', n)} />
+        </Card>
+        <Card title="Penalidad retiro post-bono"
+          desc="Penalidad si el comprador se retira tras desembolsado el bono."
+          saved={ok === 'penalidad_retiro_post_bono'} saving={saving === 'penalidad_retiro_post_bono'}>
+          <NumberField suffix="S/" value={Number(items.penalidad_retiro_post_bono ?? 5000)} min={0}
+            onSave={(n) => save('penalidad_retiro_post_bono', n)} />
+        </Card>
+      </div>
+
+      {/* ========= CANALES DE COBRANZA ========= */}
+      <h2 className="mt-10 mb-3 text-lg font-semibold text-slate-900">Canales de cobranza</h2>
+      <div className="space-y-5">
+        <Card title="WhatsApp de cobranza" desc="Número al que los clientes envían vouchers."
+          saved={ok === 'whatsapp_cobranza'} saving={saving === 'whatsapp_cobranza'}>
+          <TextField value={String(items.whatsapp_cobranza ?? '')} onSave={(v) => save('whatsapp_cobranza', v)} />
+        </Card>
+        <Card title="Email de cobranza" desc="Email al que los clientes envían vouchers como alternativa al WhatsApp."
+          saved={ok === 'email_cobranza'} saving={saving === 'email_cobranza'}>
+          <TextField value={String(items.email_cobranza ?? '')} onSave={(v) => save('email_cobranza', v)} />
+        </Card>
+      </div>
     </div>
   );
 }

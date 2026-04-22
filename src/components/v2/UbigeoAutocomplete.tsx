@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabaseV2 } from '@/lib/v2/supabaseV2';
 import type { Ubigeo } from '@/lib/v2/types';
-import { Check, Search, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 
 interface Props {
   value: string | null | undefined;
@@ -12,27 +12,21 @@ interface Props {
 }
 
 export function UbigeoAutocomplete({ value, onChange, placeholder }: Props) {
-  const [all, setAll] = useState<Ubigeo[]>([]);
   const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Ubigeo[]>([]);
+  const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<Ubigeo | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<any>(null);
 
-  // Cargar catálogo entero una sola vez (1.8k filas, ~80KB — aceptable para autocomplete instantáneo)
+  // Resolver el código inicial → obtener objeto Ubigeo
   useEffect(() => {
-    supabaseV2.from('ubigeos').select('*').order('departamento').order('provincia').order('distrito')
-      .then((res: any) => setAll((res?.data ?? []) as Ubigeo[]));
-  }, []);
-
-  // Sincronizar el valor externo con el objeto
-  useEffect(() => {
-    if (value && all.length > 0) {
-      const found = all.find((u) => u.codigo === value) ?? null;
-      setSelected(found);
-    } else if (!value) {
-      setSelected(null);
-    }
-  }, [value, all]);
+    if (!value) { setSelected(null); return; }
+    if (selected?.codigo === value) return;
+    supabaseV2.from('ubigeos').select('*').eq('codigo', value).maybeSingle()
+      .then((res: any) => setSelected((res?.data ?? null) as Ubigeo | null));
+  }, [value]);
 
   // Cerrar al hacer click fuera
   useEffect(() => {
@@ -43,16 +37,28 @@ export function UbigeoAutocomplete({ value, onChange, placeholder }: Props) {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return all.slice(0, 40);
-    return all.filter((u) =>
-      u.distrito.toLowerCase().includes(q) ||
-      u.provincia.toLowerCase().includes(q) ||
-      u.departamento.toLowerCase().includes(q) ||
-      u.codigo.startsWith(q)
-    ).slice(0, 40);
-  }, [query, all]);
+  // Búsqueda server-side con debounce
+  useEffect(() => {
+    if (!open) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const q = query.trim();
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      let queryBuilder = supabaseV2.from('ubigeos').select('*').limit(40);
+      if (q) {
+        // Buscar en 3 campos (distrito, provincia, departamento) + código exacto
+        queryBuilder = queryBuilder.or(
+          `distrito.ilike.*${q}*,provincia.ilike.*${q}*,departamento.ilike.*${q}*,codigo.ilike.${q}*`
+        );
+      } else {
+        queryBuilder = queryBuilder.order('departamento').order('provincia').order('distrito');
+      }
+      const res: any = await queryBuilder;
+      setResults((res?.data ?? []) as Ubigeo[]);
+      setLoading(false);
+    }, 180);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query, open]);
 
   const pick = (u: Ubigeo) => {
     setSelected(u);
@@ -76,7 +82,7 @@ export function UbigeoAutocomplete({ value, onChange, placeholder }: Props) {
             <span className="text-slate-500"> · {selected.provincia}, {selected.departamento}</span>
             <span className="ml-2 font-mono text-xs text-slate-400">{selected.codigo}</span>
           </div>
-          <button onClick={clear} className="text-slate-400 hover:text-red-600">
+          <button onClick={clear} className="text-slate-400 hover:text-red-600" title="Quitar">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -94,9 +100,18 @@ export function UbigeoAutocomplete({ value, onChange, placeholder }: Props) {
         </div>
       )}
 
-      {open && !selected && results.length > 0 && (
+      {open && !selected && (
         <div className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
-          {results.map((u) => (
+          {loading && (
+            <div className="px-3 py-2 text-xs text-slate-500">Buscando…</div>
+          )}
+          {!loading && results.length === 0 && query && (
+            <div className="px-3 py-2 text-xs text-slate-500">Sin coincidencias para «{query}»</div>
+          )}
+          {!loading && results.length === 0 && !query && (
+            <div className="px-3 py-2 text-xs text-slate-500">Empieza a teclear…</div>
+          )}
+          {!loading && results.map((u) => (
             <button
               key={u.codigo}
               type="button"
@@ -110,11 +125,6 @@ export function UbigeoAutocomplete({ value, onChange, placeholder }: Props) {
               </span>
             </button>
           ))}
-        </div>
-      )}
-      {open && !selected && results.length === 0 && query && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 shadow-lg">
-          Sin coincidencias
         </div>
       )}
     </div>

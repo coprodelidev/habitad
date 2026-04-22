@@ -386,7 +386,7 @@ function PrecontratoCasa({ venta, propiedad, cliente, pagos, cuotas, params, ubi
           </p>
         </section>
       )}
-      <ClausulasFinalesCasa params={params} />
+      <ClausulasFinalesCasa params={params} conBono={conBono} />
       <Firmas cliente={cliente} params={params} />
     </div>
   );
@@ -453,29 +453,36 @@ function ClausulasFinalesTerreno({ params, penalidad }: any) {
   );
 }
 
-function ClausulasFinalesCasa({ params }: any) {
+function ClausulasFinalesCasa({ params, conBono }: { params: any; conBono: boolean }) {
   const pNoElegible = params.penalidad_mivivienda_no_elegible ?? 5000;
   const pPostBono = params.penalidad_retiro_post_bono ?? 5000;
   const pRetiroCasa = params.penalidad_retiro_casa ?? 3000;
+  // Si hay Bono, TERCERA ya la usó la cláusula MiVivienda → ENTREGA es CUARTA, PENALIDADES QUINTA.
+  // Si NO hay Bono, ENTREGA pasa a ser TERCERA y PENALIDADES CUARTA (sin saltos).
+  const numEntrega = conBono ? 'CUARTA' : 'TERCERA';
+  const numPenalidades = conBono ? 'QUINTA' : 'CUARTA';
   return (
     <>
       <section>
-        <h2 className="text-sm font-semibold">CUARTA: ENTREGA</h2>
+        <h2 className="text-sm font-semibold">{numEntrega}: ENTREGA</h2>
         <p className="text-justify text-[12px]">
           Ambas partes acuerdan que al derivarse la Minuta a la Notaría y proceder a su elevación a Escritura Pública,
           EL VENDEDOR informará al COMPRADOR el costo del trámite notarial y registral. Se otorgará un plazo máximo de
-          1 mes para firmar la Escritura Pública; vencido este plazo se procederá a resolver el contrato y devolver el
-          bono y ahorro al Fondo MiVivienda.
+          1 mes para firmar la Escritura Pública.{conBono && ' Vencido este plazo se procederá a resolver el contrato y devolver el bono y ahorro al Fondo MiVivienda.'}
         </p>
       </section>
       <section>
-        <h2 className="text-sm font-semibold">QUINTA: PENALIDADES</h2>
+        <h2 className="text-sm font-semibold">{numPenalidades}: PENALIDADES</h2>
         <p className="text-justify text-[12px]">EL COMPRADOR pagará una penalidad por gastos administrativos en los siguientes casos:</p>
         <ol className="ml-6 list-decimal text-justify text-[12px]">
-          <li>Retiro después de completar la inicial o incumplimiento de regularización de documento MiVivienda: <strong>S/ {Number(pRetiroCasa).toFixed(0)}</strong></li>
-          <li>No firmar el expediente para el bono en 1 mes: <strong>S/ {Number(pRetiroCasa).toFixed(0)}</strong></li>
-          <li>Expediente NO ELEGIBLE (insubsanable): <strong>S/ {Number(pNoElegible).toFixed(0)}</strong></li>
-          <li>Retiro después de ser calificado como beneficiario o desembolso del Bono: <strong>S/ {Number(pPostBono).toFixed(0)}</strong></li>
+          <li>Retiro después de completar la inicial o antes de la firma de la minuta de compraventa: <strong>S/ {Number(pRetiroCasa).toFixed(0)}</strong></li>
+          {conBono && (
+            <>
+              <li>No firmar el expediente para el bono en 1 mes: <strong>S/ {Number(pRetiroCasa).toFixed(0)}</strong></li>
+              <li>Expediente NO ELEGIBLE (insubsanable): <strong>S/ {Number(pNoElegible).toFixed(0)}</strong></li>
+              <li>Retiro después de ser calificado como beneficiario o desembolso del Bono: <strong>S/ {Number(pPostBono).toFixed(0)}</strong></li>
+            </>
+          )}
         </ol>
       </section>
       <p className="mt-4 text-[12px]">En señal de conformidad, las partes suscriben este documento en Ica, a los ___ / ___ / 2026.</p>
