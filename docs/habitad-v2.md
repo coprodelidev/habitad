@@ -1,7 +1,231 @@
 # Habitad 2.0 — Sistema de gestión de ventas, separaciones y pagos
 
-> Documento vivo. Última actualización: 2026-04-11.
+> Documento vivo. Última actualización: 2026-04-22.
 > Este documento es la fuente única de verdad para el alcance, reglas de negocio y arquitectura de Habitad 2.0. Cualquier cambio de alcance debe reflejarse aquí antes de implementarse.
+
+---
+
+## 14. Hallazgos 2026-04-22: integración real con SAP Business One
+
+Feedback recibido de Yessenia Obregón con 3 Excels y 4 plantillas Word que **reconfiguran el alcance de Habitad**.
+
+### 14.1 Cómo se conecta Habitad con SAP
+
+COPRODELI opera SAP Business One como ERP contable. **Habitad no reemplaza SAP**, es el sistema OPERATIVO que se conecta mediante **exportaciones en el formato exacto que SAP importa**. Flujo:
+
+1. Promotor vende en Habitad (plano → separación → inicial → contrato → cuotas)
+2. Admin exporta periódicamente desde Habitad:
+   - **Maestro de clientes** nuevos → SAP los da de alta como Business Partners
+   - **Órdenes de venta** confirmadas → SAP las registra contablemente
+3. SAP lleva contabilidad. Habitad lleva operación.
+
+### 14.2 Formato exacto del Maestro de Clientes SAP (33 columnas)
+
+Headers en dos bandas:
+
+**Datos del cliente** (columnas 1-22):
+- `CardCode`: `C` + 8 dígitos DNI (ej. `C12345678`)
+- `CardName`: apellidos + nombres concatenados
+- `CardType`: fijo `C`
+- `GroupCode`: fijo `100`
+- `PayTermsGrpCode`: fijo `-1`
+- `FederalTaxID`: DNI (8 dígitos)
+- `Currency`: fijo `#`
+- `DebitorAccount` (varía por tipo + moneda):
+  - `12121165` CASAS SOL
+  - `12121164` TERRENO SOL
+  - `12122162` CASA USD
+  - `12122161` TERRENO USD
+- `DownPaymentClearAct`: fijo `12213102`
+- `DownPaymentInterimAccount`: fijo `12213101`
+- `SubjectToWithholdingTax`: fijo `N`
+- `SalesPersonCode`: código promotor (del catálogo COD_PROMOTOR)
+- `Cellular`, `E_Mail`
+- `Valid`: fijo `Y`
+- `U_SYP_BPTP`: fijo `TPN`
+- `U_SYP_BPTD`: fijo `1`
+- `U_SYP_BPAP`: apellido paterno (primer apellido separado)
+- `U_SYP_BPAM`: apellido materno (segundo apellido)
+- `U_SYP_BPNO`: primer nombre
+- `U_SYP_BPN2`: segundo nombre
+- `Notes`: `URB-SF-C` si casa / `URB-SF-T` si terreno
+
+**Dirección del cliente** (columnas 23-33):
+- `ParentKey`: CardCode
+- `LineNum`: fijo `0`
+- `AddressType`: fijo `bo_BillTo`
+- `AddressName`: fijo `FISCAL`
+- `Street`: concatenación `Mz X Lt Y - Nº N - URB/AAHH/PJ Nombre` (todo en un solo string)
+- `ZipCode`: código ubigeo INEI (ej. `110101`)
+- `Block`: distrito (texto)
+- `City`: provincia
+- `County`: departamento
+- `U_SYP_URBANIZA`: nombre de la urbanización donde vive el cliente
+- `Country`: fijo `PE`
+
+### 14.3 Formato de Órdenes de Venta SAP (90+ columnas)
+
+Cabecera con DocNum, CardCode, fechas (TaxDate, DocDate, DocDueDate), moneda/tipo de cambio, total, SalesPersonCode, PaymentGroupCode.
+
+Campos `U_SYP_*` personalizados de COPRODELI:
+- Datos de expediente: `U_SYP_VAEXPEDIENTE`, `U_SYP_FINGEXP` (fecha ingreso), `U_SYP_FBENEF` (fecha beneficiario), `U_SYP_FCADUC` (fecha caducidad)
+- Valores del precontrato: `U_SYP_VAPROMOTOR`, `U_SYP_VACOPROVIDIG`, `U_SYP_VACOPRODELI`, `U_SYP_VAGASTOSADM`, `U_SYP_SEPARA`, `U_SYP_CUINICIAL`, `U_SYP_PRECONT`, `U_SYP_VACUOTA`
+- Fechas operativas: `U_SYP_FESEPARAINI`, `U_SYP_FEINICIAL`, `U_SYP_FERECAINI`, `U_SYP_FERECAFIN`
+- Cuotas: `U_SYP_NROCUOTAS`, `U_SYP_HBCUONUM`, `U_SYP_CUOFALTA`, `U_SYP_VACUNICIAL`, `U_SYP_HBCUOVEN`, `U_SYP_HBCUOIMP`, `U_SYP_HBCUOMOR`
+- MiVivienda: `U_SYP_VALORBONO`, `U_SYP_AHORRO`, `U_SYP_CREDHIPO`, `U_SYP_DONACION`, `U_SYP_GASTOSDMIN`, `U_SYP_INFMV`
+- Crédito hipotecario: `U_SYP_LICF`, `U_SYP_CARTAF`, `U_SYP_VALORCF`, `U_SYP_FEINICF`, `U_SYP_FEFINCF`, `FERENCF`, `U_SYP_HBVALFMV`
+- Comisiones: `U_SYP_COM1`…`U_SYP_COM5`
+- Centros SAP: `U_SYP_PROGRAMA`, `U_SYP_CCCENCO`, `U_SYP_CCFINAN`, `U_SYP_CCPARTIDA`, `U_SYP_CCSUBPARTIDA`, `U_SYP_COGRUPO`
+
+Líneas de la orden (después del separador vacío): `ParentKey`, `LineNum`, `ItemCode`, `ItemDescription`, `WarehouseCode`, `Quantity`, `Price`, `LineTotal`, `TaxCode`, `VatGroup`, `AccountCode`, `CostingCode1-5`, `ProjectCode`.
+
+### 14.4 Catálogos SAP fijos
+
+**COD UBIGEO** (1,853 filas): código INEI de 6 dígitos + distrito + provincia + departamento. Perú completo. **Se siembra en `v2.ubigeos`**.
+
+**COD_PROMOTOR** (13 filas): SalesPersonCode + nombre del empleado. Los 12 promotores reales de COPRODELI:
+
+| Code | Nombre |
+|---|---|
+| -1 | -Ningún empleado del departamento de ventas- (valor por defecto) |
+| 92 | GISELA ROJAS MARCATINCO |
+| 94 | HUGO RODRIGUEZ QUESQUEN |
+| 95 | CRISS PANITZ VASQUEZ |
+| 97 | RONY YATACO |
+| 98 | JUDITH SANTIAGO |
+| 99 | JOSE BRICEÑO |
+| 100 | ZUNILDA PUMA |
+| 101 | ERICK DAVILA |
+| 102 | NATHALY ZAMBRANO |
+| 103 | KAREN CUETO |
+| 104 | JORGE HUERTAS |
+| 113 | ARIANA GONZALES |
+
+**CODIGOS** (5,328 filas con múltiples catálogos mezclados):
+- Grupo BIF (`0013` URB SAN FERN CASAS S, `0031` SAN FERNANDO TERR, ...)
+- Almacén (`SFERN` URB SAN FERNANDO)
+- Programa (`6` HABITAT)
+- Centro de costo (`604` URB SAN FERNANDO)
+- Partida (`21` 1 ETAPA, `22` 2 ETAPA, ...)
+- Subpartida (`60424701` INGRESO VIVIENDA-4ET, `60424703` INGRESO TERRENO-4ET)
+- Artículo SAP (`PT03520001` MODELO ACACIA MZ 1 LT 3) — mapea 1:1 a cada propiedad
+- Ubicación (`SF-1_3`, `SF-1_4`) — también 1:1 a propiedad
+
+### 14.5 Las 4 plantillas de Precontrato (Word)
+
+4 modalidades reales que emiten según tipo de venta:
+
+| # | Plantilla | Caso | Cuenta BANBIF | Interés | Penalidad retiro |
+|---|---|---|---|---|---|
+| 1 | Terreno Contado | Ya pagó completo, solo abonos detallados | SIN DATA | — | S/ 3,500 |
+| 2 | Terreno Cuotas SIN interés | Inicial + cuotas sin intereses | CON DATA TERRENO | 0% | S/ 3,500 |
+| 3 | Terreno Cuotas CON interés | Inicial + cuotas 8% anual | CON DATA TERRENO | 8% anual | S/ 3,500 |
+| 4 | Casa (con/sin Bono MiVivienda) | Vivienda con cláusulas MiVivienda | CON DATA CASAS | — | S/ 3,000–5,000 (según caso) |
+
+Todas comparten: representante legal (Yessenia Obregón DNI 25765681, Partida 70000278), domicilio fiscal (Av. Guardia Chalaca 1371, Callao), proyecto (Las Palmeras de San Fernando, Partida 11103106, Ica), WhatsApp cobranza `989 172 061`, email `cobranza@coprodeli.org`. Todos son parametrizables.
+
+### 14.6 Decisiones de Yessenia (2026-04-22)
+
+1. **Ubigeo**: se siembran **los 1,853 distritos** del Excel (Perú completo INEI).
+2. **Promotores**: se pueden **crear desde admin** (ya hecho: botón "Crear promotor" en `/v2/admin/usuarios`). Los 13 actuales del Excel se siembran como baseline.
+3. **Cuotas iniciales**: **mínimo 3 abonos**, pueden ser más. Los precontratos muestran 3 líneas pero es expandible.
+4. **Precontrato**: se **imprime PDF** y se firma **físico**. No hay firma digital.
+5. **Export SAP actual** (`/v2/reportes/sap`): headers correctos mapeados al Excel, pero **los campos de dirección estructurada del cliente salen vacíos** porque `v2.clientes` no los tiene todavía. Bloqueante para uso real.
+
+### 14.7 Mz/Lt — aclaración pedida
+
+Dos Mz/Lt distintos:
+
+- **Mz/Lt de la propiedad del proyecto** (el CUH del lote San Fernando): **100% estandarizado**, viene del inventario, se selecciona automáticamente al elegir el CUH en el plano. No se edita a mano.
+- **Mz/Lt de la dirección del cliente** (donde vive hoy): **no puede ser dropdown** (cada cliente vive en un lugar distinto de Perú), pero **tampoco textarea libre**. Solución: formulario con campos separados que al guardar se concatenan en el string `Street` de SAP:
+  - `tipo_via` dropdown: URB / AA.HH. / P.J. / Av. / Jr. / Ca. / Pasaje / Sector / Caserío
+  - `zona_nombre` texto (nombre del AAHH/URB/PJ/calle)
+  - `manzana`, `lote` texto opcional
+  - `numero_puerta`, `interior` texto opcional
+  - `referencia` texto opcional
+  - `ubigeo_cod` autocomplete del catálogo INEI
+
+---
+
+## 15. Plan de desarrollo pendiente (Fases A-D)
+
+Para cerrar el alcance SAP completo, en orden de prioridad:
+
+### Fase A — Maestro de Clientes estructurado + Ubigeo INEI (estimado: 4-5 h)
+
+**Objetivo**: que el export SAP `/v2/reportes/sap` deje de salir con campos vacíos.
+
+Tareas:
+1. Migración SQL: añadir a `v2.clientes`:
+   - `tipo_via text`, `zona_nombre text`, `numero_puerta text`, `interior text`, `referencia text`
+   - `direccion_mz text`, `direccion_lt text` (distintos del Mz/Lt de la propiedad)
+   - `ubigeo_cod text` (FK lógica a `v2.ubigeos`)
+   - `urbanizacion text`
+2. Migración SQL: crear `v2.ubigeos (codigo PK, distrito, provincia, departamento)` + seed con los 1,853 distritos del Excel
+3. UI: rehacer `NuevaSeparacionModal` y form de edición cliente con los nuevos campos + autocomplete ubigeo (buscador por distrito)
+4. Actualizar `sapExport.ts` para leer los campos nuevos de `cliente` y concatenar `Street` correctamente
+5. Constructor de reportes: exponer los campos nuevos como columnas disponibles
+
+### Fase B — Seed de promotores + normalización catálogos SAP (estimado: 2 h)
+
+Tareas:
+1. Script/migración para crear los 13 usuarios de COPRODELI con sus `sap_sales_person_code` (una vez Yessenia confirme la lista completa — hoy solo vi Gisela)
+2. Tabla `v2.sap_catalogos` (clave, valor, descripcion, tipo) para: GrupoBIF, Almacen, Programa, CentroCosto, Partida, Subpartida — editables desde `/v2/admin/parametros`
+3. Tabla `v2.sap_item_mapping (propiedad_id → item_code SAP, warehouse_code, ubicacion_sap)` para el mapeo de cada unidad al catálogo artículo SAP
+
+### Fase C — Las 4 plantillas de Precontrato (estimado: 6-8 h)
+
+**Objetivo**: reemplazar el contrato único actual por 4 plantillas según modalidad.
+
+Tareas:
+1. Migración SQL: añadir a `v2.ventas`:
+   - `modalidad_pago` enum: `contado` | `cuotas_sin_interes` | `cuotas_con_interes` | `bono_mivivienda`
+   - `tasa_interes_anual numeric(4,2)` default 0
+   - `penalidad_retiro numeric(10,2)`
+   - `cuenta_recaudadora text` enum: `SIN_DATA` | `CON_DATA_TERRENO` | `CON_DATA_CASAS`
+2. Parámetros nuevos en `v2.parametros`:
+   - `empresa_representante_nombre`, `empresa_representante_dni`, `empresa_representante_partida`
+   - `domicilio_fiscal_empresa`, `ruc_empresa`
+   - `proyecto_nombre`, `proyecto_partida_registral`, `proyecto_ubicacion`
+   - `cuenta_banbif_sin_data`, `cuenta_banbif_con_data_terreno`, `cuenta_banbif_con_data_casas`
+   - `mora_diaria_terreno`, `mora_diaria_casa`
+   - `whatsapp_cobranza`, `email_cobranza`
+3. Rehacer `/v2/print/contrato/[id]` como renderer único que lee `modalidad_pago` y `tipo` y elige entre 4 componentes:
+   - `<PrecontratoTerrenoContado />`
+   - `<PrecontratoTerrenoCuotasSinInteres />`
+   - `<PrecontratoTerrenoCuotasConInteres />`
+   - `<PrecontratoCasa />`
+4. UI en `ContratoTab` para elegir modalidad + campos dependientes (tasa si con interés, bono si MiVivienda)
+5. Tabla de inicial con **al menos 3 filas** (editables, expandibles a más)
+
+### Fase D — Expediente MiVivienda (solo si se pide) (estimado: 4-6 h)
+
+Aplica a ventas de CASA con `modalidad_pago = bono_mivivienda`. Campos:
+
+1. Migración SQL: añadir a `v2.ventas`:
+   - `expediente_mivivienda_codigo text`
+   - `fecha_ingreso_expediente date`
+   - `fecha_beneficiario date`
+   - `fecha_caducidad date`
+   - `bono_monto numeric(12,2)`
+   - `ahorro_cliente numeric(12,2)`
+   - `credito_hipotecario_banco text`, `credito_hipotecario_monto numeric`, `credito_hipotecario_fecha_inicio date`, `credito_hipotecario_fecha_fin date`
+2. UI: tab adicional "MiVivienda" en `/v2/ventas/[id]` para registrar/trackear el expediente
+3. Parámetros: montos fijos de penalidad por estado (no elegible, retiro post-bono, etc.)
+
+---
+
+## 16. Estado de implementación SAP hoy
+
+- ✅ Export SAP básico (`/v2/reportes/sap`) con 3 pestañas (Maestro, Órdenes, Separación) — commit `02afeb3`
+- ✅ `profiles.sap_sales_person_code` (integer, opcional)
+- ✅ Botón "Crear promotor" en `/v2/admin/usuarios` con campo SAP code obligatorio
+- ✅ Headers SAP mapeados 1:1 en `src/lib/v2/sapExport.ts` (33 maestro, 90+ orden, 36 separación)
+- ✅ Builder de COD_PROMOTOR y COD_UBIGEO dinámicos (pero ubigeo se arma desde clientes, no desde catálogo)
+- ❌ `v2.clientes` sin campos estructurados de dirección (bloquea export real)
+- ❌ `v2.ubigeos` no existe como tabla
+- ❌ `v2.ventas` sin campos de modalidad de pago / bono / tasa
+- ❌ Plantillas de precontrato — hay 1 genérica, faltan 3 variantes
 
 ## Estado actual (2026-04-11)
 
