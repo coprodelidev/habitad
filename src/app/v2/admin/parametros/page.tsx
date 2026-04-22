@@ -56,6 +56,12 @@ export default function ParametrosPage() {
 
   return (
     <div className="max-w-2xl">
+      {ok && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 text-sm text-white shadow-lg transition-opacity">
+          <span className="text-base leading-none">✓</span>
+          <span>Guardado: <strong>{ok}</strong></span>
+        </div>
+      )}
       <h1 className="mb-1 text-2xl font-semibold text-slate-900">Parámetros del sistema</h1>
       <p className="mb-6 text-sm text-slate-500">
         Configura los valores que usa Habitad. Los cambios se aplican inmediatamente.

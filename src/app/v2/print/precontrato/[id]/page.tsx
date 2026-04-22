@@ -332,11 +332,16 @@ function PrecontratoCasa({ venta, propiedad, cliente, pagos, cuotas, params, ubi
   const montoCuota = cuotas[0]?.monto ?? '___';
   const conBono = venta.modalidad_pago === 'bono_mivivienda';
   const bonoMonto = venta.mivivienda_bono_monto;
+  const tasa = venta.tasa_interes_anual ?? params.tasa_interes_con_data_default ?? 8;
+  const subtituloModalidad = conBono ? 'Con Bono Familiar Habitacional MiVivienda'
+    : venta.modalidad_pago === 'contado' ? 'Cancelación al contado'
+    : venta.modalidad_pago === 'cuotas_con_interes' ? `Cuotas CON interés ${tasa}% anual`
+    : 'Cuotas SIN interés';
   return (
     <div className="space-y-4 text-[13px] leading-relaxed">
       <header className="border-b-2 border-slate-900 pb-3 text-center">
         <h1 className="text-lg font-bold uppercase">Precontrato de venta de bien inmueble</h1>
-        <div className="text-xs text-slate-500">Casa {conBono ? '– Con Bono Familiar Habitacional MiVivienda' : ''}</div>
+        <div className="text-xs text-slate-500">Casa – {subtituloModalidad}</div>
       </header>
       <Encabezado cliente={cliente} params={params} ubigeo={ubigeo} />
       <CasaPrimera propiedad={propiedad} params={params} />
