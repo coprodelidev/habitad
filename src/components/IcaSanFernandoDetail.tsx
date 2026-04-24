@@ -37,6 +37,7 @@ export default function IcaSanFernandoDetail() {
     '/images/icasanfernando/WhatsApp Image 2026-02-16 at 23.07.52 (2).jpeg',
     '/images/icasanfernando/WhatsApp Image 2026-02-16 at 23.07.52 (3).jpeg',
     '/images/icasanfernando/WhatsApp Image 2026-02-16 at 23.07.52.jpeg',
+    '/images/slider8.jpeg',
   ];
 
   return (
