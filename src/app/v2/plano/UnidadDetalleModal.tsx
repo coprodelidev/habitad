@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { supabaseV2 } from '@/lib/v2/supabaseV2';
+import { supabasePublic, supabaseV2 } from '@/lib/v2/supabaseV2';
 import type { Propiedad, Venta, SaldoVenta } from '@/lib/v2/types';
 import { formatDateTime, formatMoney, timeRemaining } from '@/lib/v2/format';
 import { useEffect, useState } from 'react';
@@ -22,6 +22,7 @@ export function UnidadDetalleModal({
   const { user } = useV2User();
   const canAdmin = isAdmin(user?.roleCode);
   const [cliente, setCliente] = useState<{ nombres: string; apellidos: string; dni: string; telefono: string | null; email: string | null } | null>(null);
+  const [promotor, setPromotor] = useState<{ first_name: string | null; last_name: string | null; email: string | null } | null>(null);
   const [saldo, setSaldo] = useState<SaldoVenta | null>(null);
 
   useEffect(() => {
@@ -32,6 +33,10 @@ export function UnidadDetalleModal({
     if (venta?.id) {
       supabaseV2.from('vw_saldos_venta').select('*').eq('venta_id', venta.id).maybeSingle()
         .then((res: any) => setSaldo(res?.data ?? null));
+    }
+    if (venta?.promotor_id) {
+      supabasePublic.from('profiles').select('first_name, last_name, email').eq('id', venta.promotor_id).maybeSingle()
+        .then((res: any) => setPromotor(res?.data ?? null));
     }
   }, [venta]);
 
@@ -68,6 +73,8 @@ export function UnidadDetalleModal({
             <Row k="Tipo" v={propiedad.tipo} />
             <Row k="Modelo" v={propiedad.modelo ?? '—'} />
             <Row k="Precio" v={formatMoney(propiedad.precio_venta ?? propiedad.precio_lista, propiedad.moneda)} />
+            <Row k="Moneda" v={propiedad.moneda} />
+            <Row k="Esquina/parque" v={getReferenciaUnidad(propiedad)} />
             <Row k="Estado físico" v={propiedad.estado_fisico} />
             <Row k="Estado comercial" v={propiedad.estado_comercial} />
           </div>
@@ -100,6 +107,7 @@ export function UnidadDetalleModal({
               <div className="rounded border border-slate-200 bg-slate-50 p-3">
                 <div className="mb-2 text-xs font-semibold uppercase text-slate-500">Venta</div>
                 <Row k="Estado" v={venta.estado} />
+                <Row k="Promotor" v={promotor ? `${promotor.first_name ?? ''} ${promotor.last_name ?? ''}`.trim() || promotor.email : 'â€”'} />
                 {venta.estado === 'separacion' && (
                   <>
                     <Row k="Vencimiento" v={formatDateTime(venta.fecha_vencimiento_separacion)} />
@@ -151,4 +159,13 @@ function Row({ k, v, highlight }: { k: string; v: React.ReactNode; highlight?: b
       <span className={`capitalize ${highlight ? 'font-semibold text-slate-900' : 'text-slate-800'}`}>{v}</span>
     </div>
   );
+}
+
+function getReferenciaUnidad(propiedad: Propiedad): string {
+  const adicionales = propiedad.adicionales ?? {};
+  const valores = [
+    (adicionales as any).esquina ? 'Esquina' : null,
+    (adicionales as any).parque ? 'Parque' : null,
+  ].filter(Boolean);
+  return valores.length ? valores.join(' / ') : 'â€”';
 }

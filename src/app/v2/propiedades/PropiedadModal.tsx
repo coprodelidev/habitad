@@ -26,6 +26,8 @@ export function PropiedadModal({ propiedad, etapas, onClose, onSaved }: Props) {
     precio_lista: propiedad?.precio_lista?.toString() ?? '',
     precio_venta: propiedad?.precio_venta?.toString() ?? '',
     moneda: (propiedad?.moneda ?? 'USD') as Moneda,
+    esquina: Boolean((propiedad?.adicionales as any)?.esquina),
+    parque: Boolean((propiedad?.adicionales as any)?.parque),
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +54,11 @@ export function PropiedadModal({ propiedad, etapas, onClose, onSaved }: Props) {
       precio_lista: Number(form.precio_lista || 0),
       precio_venta: form.precio_venta ? Number(form.precio_venta) : null,
       moneda: form.moneda,
+      adicionales: {
+        ...(propiedad?.adicionales ?? {}),
+        esquina: form.esquina,
+        parque: form.parque,
+      },
     };
     const q = isEdit
       ? supabaseV2.from('propiedades').update(payload).eq('id', propiedad!.id)
@@ -122,6 +129,18 @@ export function PropiedadModal({ propiedad, etapas, onClose, onSaved }: Props) {
               <option value="USD">USD</option>
               <option value="PEN">PEN</option>
             </select>
+          </Field>
+          <Field label="Ubicacion especial" full>
+            <div className="flex gap-4 text-sm text-slate-700">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={form.esquina} onChange={(e) => setForm({ ...form, esquina: e.target.checked })} />
+                Esquina
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={form.parque} onChange={(e) => setForm({ ...form, parque: e.target.checked })} />
+                Parque
+              </label>
+            </div>
           </Field>
         </div>
         {error && <div className="mx-5 mb-3 rounded bg-red-50 p-2 text-sm text-red-700">{error}</div>}

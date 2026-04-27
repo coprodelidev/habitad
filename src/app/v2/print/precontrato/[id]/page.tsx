@@ -174,7 +174,7 @@ function AbonosTabla({ pagos, minimo = 3 }: any) {
           <tr key={i}>
             <td className="border px-2 py-1">{p.fecha_deposito ? formatDate(p.fecha_deposito) : '…./ … /  ….'}</td>
             <td className="border px-2 py-1 font-mono">{p.numero_operacion || '…'}</td>
-            <td className="border px-2 py-1 text-right">{p.monto ? `S/ ${Number(p.monto).toFixed(2)}` : ''}</td>
+            <td className="border px-2 py-1 text-right">{p.monto ? formatMoney(Number(p.monto), p.moneda ?? 'PEN') : ''}</td>
             <td className="border px-2 py-1">{p.banco ?? ''}</td>
           </tr>
         ))}
@@ -330,6 +330,10 @@ function PrecontratoCasa({ venta, propiedad, cliente, pagos, cuotas, params, ubi
   const mora = params.mora_diaria_casa ?? 2;
   const penalidad = venta.penalidad_retiro ?? params.penalidad_retiro_casa ?? 3000;
   const montoCuota = cuotas[0]?.monto ?? '___';
+  const totalAbonado = pagos
+    .filter((p: Pago) => p.estado !== 'anulado' && p.moneda === venta.moneda && (p.tipo === 'separacion' || p.tipo === 'inicial'))
+    .reduce((a: number, p: Pago) => a + Number(p.monto), 0);
+  const saldo = Math.max(0, Number(venta.precio_acordado) - totalAbonado - Number(venta.descuento_monto ?? 0));
   const conBono = venta.modalidad_pago === 'bono_mivivienda';
   const bonoMonto = venta.mivivienda_bono_monto;
   const tasa = venta.tasa_interes_anual ?? params.tasa_interes_con_data_default ?? 8;
@@ -350,6 +354,13 @@ function PrecontratoCasa({ venta, propiedad, cliente, pagos, cuotas, params, ubi
         <p className="text-justify">
           El precio de la vivienda asciende a la suma de <strong>{formatMoney(venta.precio_acordado, venta.moneda)}</strong>.
         </p>
+        {Number(venta.descuento_monto ?? 0) > 0 && (
+          <p className="mt-2 text-justify text-[12px]">
+            Item de descuento ({venta.descuento_tipo ?? 'especial'}):{' '}
+            <strong>{formatMoney(Number(venta.descuento_monto), venta.moneda)}</strong>
+            {venta.descuento_descripcion ? ` - ${venta.descuento_descripcion}` : ''}.
+          </p>
+        )}
         {conBono && (
           <p className="mt-2 text-justify text-[12px]">
             Se deja establecido que al momento que se presente el expediente al Fondo MiVivienda para que sea calificado
@@ -363,7 +374,7 @@ function PrecontratoCasa({ venta, propiedad, cliente, pagos, cuotas, params, ubi
           Todo pago deberá ser abonado en BANBIF a la cuenta RECAUDADORA Empresa <strong>{cuentaSin}</strong>.
         </p>
         <p className="mt-3 text-justify">
-          Completada la inicial, el saldo equivalente a <strong>S/ ___</strong> será pagado mediante un crédito
+          Completada la inicial, el saldo equivalente a <strong>{formatMoney(saldo, venta.moneda)}</strong> será pagado mediante un crédito
           directo sin intereses en <strong>{venta.meses_cuotas ?? 'XX'}</strong> cuotas mensuales de{' '}
           <strong>{formatMoney(Number(montoCuota), venta.moneda)}</strong> a abonar en la cuenta RECAUDADORA Empresa{' '}
           <strong>{cuentaNombre}</strong>.

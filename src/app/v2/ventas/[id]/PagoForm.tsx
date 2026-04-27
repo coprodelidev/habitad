@@ -22,7 +22,7 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
     notas: '',
   });
   const [voucher, setVoucher] = useState<File | null>(null);
-  const [bancos, setBancos] = useState<string[]>([]);
+  const [bancos, setBancos] = useState<string[]>(['BANBIF', 'BCP']);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +31,12 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
   useEffect(() => {
     supabaseV2.from('parametros').select('valor').eq('clave', 'bancos_permitidos').maybeSingle()
       .then((res: any) => {
-        if (Array.isArray(res?.data?.valor)) setBancos(res.data.valor as string[]);
+        if (Array.isArray(res?.data?.valor)) {
+          const allowed = (res.data.valor as string[])
+            .map((b) => b.toUpperCase().replace('BANBIF', 'BANBIF'))
+            .filter((b) => b === 'BANBIF' || b === 'BCP');
+          setBancos(allowed.length ? allowed : ['BANBIF', 'BCP']);
+        }
       });
   }, []);
 

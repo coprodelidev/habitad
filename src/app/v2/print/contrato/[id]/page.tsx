@@ -17,9 +17,13 @@ export default function ContratoPage() {
   const { venta, propiedad, cliente, pagos, cuotas } = b;
 
   const totalIni = pagos
-    .filter((p) => p.estado !== 'anulado' && (p.tipo === 'separacion' || p.tipo === 'inicial'))
+    .filter((p) => p.estado !== 'anulado' && p.moneda === venta.moneda && (p.tipo === 'separacion' || p.tipo === 'inicial'))
     .reduce((a, p) => a + Number(p.monto), 0);
+  const descuento = propiedad.tipo === 'casa' ? Number(venta.descuento_monto ?? 0) : 0;
   const saldoCuotas = cuotas.reduce((a, c) => a + Number(c.monto), 0);
+  const saldoReal = Math.max(0, Number(venta.precio_acordado) - totalIni - descuento);
+  const primeraCuota = cuotas[0]?.fecha_vencimiento ?? null;
+  const ultimaCuota = cuotas[cuotas.length - 1]?.fecha_vencimiento ?? null;
 
   return (
     <div className="space-y-4 text-sm leading-relaxed">
@@ -50,8 +54,19 @@ export default function ContratoPage() {
         pagaderos de la siguiente manera:
         <ul className="mt-2 list-inside list-disc">
           <li>Separación e inicial ya abonadas: <strong>{formatMoney(totalIni, venta.moneda)}</strong></li>
-          <li>Saldo a financiar: <strong>{formatMoney(saldoCuotas, venta.moneda)}</strong></li>
+          {propiedad.tipo === 'casa' && descuento > 0 && (
+            <li>
+              Descuento aplicado ({venta.descuento_tipo ?? 'especial'}):
+              {' '}
+              <strong>{formatMoney(descuento, venta.moneda)}</strong>
+              {venta.descuento_descripcion ? ` - ${venta.descuento_descripcion}` : ''}
+            </li>
+          )}
+          <li>Saldo pendiente: <strong>{formatMoney(saldoReal, venta.moneda)}</strong></li>
+          <li>Saldo a financiar en cronograma: <strong>{formatMoney(saldoCuotas, venta.moneda)}</strong></li>
           <li>Cuotas mensuales: <strong>{venta.meses_cuotas ?? '—'}</strong> cuotas según el cronograma anexo</li>
+          <li>Mes inicial: <strong>{formatDate(primeraCuota)}</strong></li>
+          <li>Mes final: <strong>{formatDate(ultimaCuota)}</strong></li>
         </ul>
       </Section>
 

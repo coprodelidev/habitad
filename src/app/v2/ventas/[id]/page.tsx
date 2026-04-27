@@ -15,8 +15,9 @@ import { ContratoTab } from './ContratoTab';
 import { CuotasTab } from './CuotasTab';
 import { ChecklistTab } from './ChecklistTab';
 import { MiViviendaTab } from './MiViviendaTab';
+import { CorteCancelacionTab } from './CorteCancelacionTab';
 
-type Tab = 'resumen' | 'separacion' | 'inicial' | 'contrato' | 'cuotas' | 'checklist' | 'mivivienda';
+type Tab = 'resumen' | 'separacion' | 'inicial' | 'contrato' | 'cuotas' | 'checklist' | 'mivivienda' | 'corte';
 
 export default function VentaDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -74,6 +75,7 @@ export default function VentaDetailPage() {
     { k: 'contrato', label: 'Contrato', visible: ['inicial', 'cuotas', 'entregada'].includes(venta.estado) },
     { k: 'cuotas', label: 'Cuotas', visible: ['cuotas', 'entregada'].includes(venta.estado) },
     { k: 'mivivienda', label: 'MiVivienda', visible: propiedad?.tipo === 'casa' && venta.modalidad_pago === 'bono_mivivienda' },
+    { k: 'corte', label: 'Corte cancelacion', visible: propiedad?.tipo === 'casa' && ['cuotas', 'entregada'].includes(venta.estado) },
   ];
 
   return (
@@ -126,10 +128,11 @@ export default function VentaDetailPage() {
       {tab === 'resumen' && <ResumenTab venta={venta} propiedad={propiedad} cliente={cliente} saldos={saldos} pagos={pagos} />}
       {tab === 'separacion' && <SeparacionTab venta={venta} pagos={pagos} canOperate={canOperate} canAdmin={canAdmin} onChange={load} />}
       {tab === 'checklist' && <ChecklistTab venta={venta} canOperate={canOperate} />}
-      {tab === 'inicial' && <InicialTab venta={venta} pagos={pagos} canOperate={canOperate} canAdmin={canAdmin} onChange={load} />}
+      {tab === 'inicial' && <InicialTab venta={venta} propiedad={propiedad} pagos={pagos} canOperate={canOperate} canAdmin={canAdmin} onChange={load} />}
       {tab === 'contrato' && <ContratoTab venta={venta} propiedad={propiedad} cliente={cliente} pagos={pagos} cuotas={cuotas} canOperate={canOperate} onChange={load} />}
       {tab === 'cuotas' && <CuotasTab venta={venta} cuotas={cuotas} pagos={pagos} canOperate={canOperate} canAdmin={canAdmin} onChange={load} />}
       {tab === 'mivivienda' && <MiViviendaTab venta={venta} canOperate={canOperate} onChange={load} />}
+      {tab === 'corte' && <CorteCancelacionTab venta={venta} saldos={saldos} canOperate={canOperate} onChange={load} />}
     </div>
   );
 }

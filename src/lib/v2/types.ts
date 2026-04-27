@@ -76,6 +76,7 @@ export interface Cliente {
   apellido_paterno?: string | null;
   apellido_materno?: string | null;
   tipo_via?: string | null;
+  tipo_zona?: string | null;
   zona_nombre?: string | null;
   direccion_mz?: string | null;
   direccion_lt?: string | null;
@@ -95,6 +96,8 @@ export interface Ubigeo {
 
 export type ModalidadPago = 'contado' | 'cuotas_sin_interes' | 'cuotas_con_interes' | 'bono_mivivienda';
 export type CuentaRecaudadora = 'sin_data' | 'con_data_terreno' | 'con_data_casas';
+export type CorteCancelacionForma = 'efectivo' | 'credito_hipotecario';
+export type TipoSeparacion = 'terreno_con_interes' | 'terreno_sin_interes' | 'casa';
 
 export interface Venta {
   id: string;
@@ -114,6 +117,7 @@ export interface Venta {
   motivo_cancelacion?: string | null;
   meses_cuotas?: number | null;
   monto_inicial_objetivo?: number | null;
+  tipo_separacion?: TipoSeparacion | null;
   created_at: string;
   updated_at: string;
   // Fase C — modalidad precontrato
@@ -122,6 +126,13 @@ export interface Venta {
   penalidad_retiro?: number | null;
   cuenta_recaudadora?: CuentaRecaudadora | null;
   mora_diaria?: number | null;
+  descuento_tipo?: string | null;
+  descuento_monto?: number | null;
+  descuento_descripcion?: string | null;
+  corte_cancelacion_fecha?: string | null;
+  corte_cancelacion_forma?: CorteCancelacionForma | null;
+  corte_cancelacion_monto?: number | null;
+  corte_cancelacion_notas?: string | null;
   // Fase D — MiVivienda
   mivivienda_expediente?: string | null;
   mivivienda_fecha_ingreso?: string | null;
