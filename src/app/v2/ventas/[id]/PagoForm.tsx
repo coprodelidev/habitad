@@ -27,13 +27,23 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
   const [error, setError] = useState<string | null>(null);
 
   const voucherRequired = tipo === 'separacion' || tipo === 'inicial';
+  const canSave = !!(
+    form.fecha_deposito &&
+    form.banco &&
+    parseMonto(form.monto) > 0 &&
+    (!voucherRequired || !!voucher)
+  );
 
   useEffect(() => {
-    supabaseV2.from('parametros').select('valor').eq('clave', 'bancos_permitidos').maybeSingle()
+    supabaseV2
+      .from('parametros')
+      .select('valor')
+      .eq('clave', 'bancos_permitidos')
+      .maybeSingle()
       .then((res: any) => {
         if (Array.isArray(res?.data?.valor)) {
           const allowed = (res.data.valor as string[])
-            .map((b) => b.toUpperCase().replace('BANBIF', 'BANBIF'))
+            .map((b) => b.toUpperCase())
             .filter((b) => b === 'BANBIF' || b === 'BCP');
           setBancos(allowed.length ? allowed : ['BANBIF', 'BCP']);
         }
@@ -42,10 +52,25 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
 
   const save = async () => {
     setError(null);
+
+    const montoNum = parseMonto(form.monto);
+    if (!form.fecha_deposito) {
+      setError('La fecha de deposito es obligatoria.');
+      return;
+    }
+    if (!form.banco) {
+      setError('Selecciona un banco.');
+      return;
+    }
+    if (!(montoNum > 0)) {
+      setError('Ingresa un monto valido mayor a 0.');
+      return;
+    }
     if (voucherRequired && !voucher) {
       setError('El voucher es obligatorio para este tipo de pago.');
       return;
     }
+
     setSaving(true);
     try {
       let voucherUrl: string | null = null;
@@ -65,7 +90,7 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
         fecha_deposito: form.fecha_deposito,
         numero_operacion: form.numero_operacion || null,
         banco: form.banco || null,
-        monto: Number(form.monto),
+        monto: montoNum,
         moneda: form.moneda,
         voucher_url: voucherUrl,
         registrado_por: userRes.user?.id ?? null,
@@ -75,7 +100,6 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
       if (ierr) throw ierr;
 
       if (tipo === 'cuota' && inserted?.id) {
-        // Ejecutar la aplicación del pago y saldo a favor (función vive en schema v2)
         await supabaseV2.rpc('aplicar_pago_cuota', { p_pago_id: inserted.id });
       }
 
@@ -87,32 +111,39 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
     }
   };
 
-  const title = tipo === 'separacion' ? 'Pago de separación'
-    : tipo === 'inicial' ? 'Abono de inicial'
-    : tipo === 'cuota' ? `Pago de cuota ${cuotaNumero ? `#${cuotaNumero}` : ''}`
-    : 'Registrar pago';
+  const title =
+    tipo === 'separacion'
+      ? 'Pago de separacion'
+      : tipo === 'inicial'
+      ? 'Abono de inicial'
+      : tipo === 'cuota'
+      ? `Pago de cuota ${cuotaNumero ? `#${cuotaNumero}` : ''}`
+      : 'Registrar pago';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div
-        className="w-full max-w-md rounded-lg bg-white shadow-xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b px-4 py-2">
           <h2 className="text-base font-semibold">{title}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
+            x
+          </button>
         </div>
         <div className="grid grid-cols-2 gap-3 p-4">
-          <Field label="Fecha depósito *">
+          <Field label="Fecha deposito *">
             <input type="date" className={inp} value={form.fecha_deposito} onChange={(e) => setForm({ ...form, fecha_deposito: e.target.value })} />
           </Field>
-          <Field label="Nº operación">
+          <Field label="Nro operacion">
             <input className={inp} value={form.numero_operacion} onChange={(e) => setForm({ ...form, numero_operacion: e.target.value })} />
           </Field>
-          <Field label="Banco">
+          <Field label="Banco *">
             <select className={inp} value={form.banco} onChange={(e) => setForm({ ...form, banco: e.target.value })}>
-              <option value="">—</option>
-              {bancos.map((b) => <option key={b} value={b}>{b}</option>)}
+              <option value="">-</option>
+              {bancos.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
             </select>
           </Field>
           <Field label="Moneda">
@@ -122,7 +153,14 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
             </select>
           </Field>
           <Field label="Monto *">
-            <input type="number" step="0.01" className={inp} value={form.monto} onChange={(e) => setForm({ ...form, monto: e.target.value })} />
+            <input
+              type="text"
+              inputMode="decimal"
+              className={inp}
+              value={form.monto}
+              onChange={(e) => setForm({ ...form, monto: e.target.value })}
+              placeholder="Ej: 1500.50 o 1500,50"
+            />
           </Field>
           <Field label={`Voucher ${voucherRequired ? '*' : ''}`}>
             <input type="file" accept="image/*,.pdf" onChange={(e) => setVoucher(e.target.files?.[0] ?? null)} className="text-xs" />
@@ -133,13 +171,11 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
         </div>
         {error && <div className="mx-5 mb-3 rounded bg-red-50 p-2 text-sm text-red-700">{error}</div>}
         <div className="flex justify-end gap-2 border-t px-5 py-3">
-          <button onClick={onClose} className="rounded-md border border-slate-300 px-4 py-2 text-sm">Cancelar</button>
-          <button
-            onClick={save}
-            disabled={saving || !form.monto}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-500 disabled:opacity-50"
-          >
-            {saving ? 'Guardando…' : 'Guardar pago'}
+          <button onClick={onClose} className="rounded-md border border-slate-300 px-4 py-2 text-sm">
+            Cancelar
+          </button>
+          <button onClick={save} disabled={saving || !canSave} className="rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-500 disabled:opacity-50">
+            {saving ? 'Guardando...' : 'Guardar pago'}
           </button>
         </div>
       </div>
@@ -156,4 +192,10 @@ function Field({ label, children, full }: { label: string; children: React.React
       {children}
     </div>
   );
+}
+
+function parseMonto(raw: string): number {
+  const normalized = (raw ?? '').trim().replace(',', '.');
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : NaN;
 }
