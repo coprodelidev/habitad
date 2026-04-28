@@ -6,6 +6,7 @@ import { PagoForm } from './PagoForm';
 import { supabaseV2 } from '@/lib/v2/supabaseV2';
 import { formatDate, formatMoney } from '@/lib/v2/format';
 import { DocumentDrawer } from '@/components/v2/DocumentDrawer';
+import { parseAmountInput } from '@/lib/v2/amount';
 
 export function InicialTab({
   venta,
@@ -41,15 +42,17 @@ export function InicialTab({
   const totalHastaInicialVentaMoneda = totalHastaInicial[venta.moneda] ?? 0;
   const objNum = Number(venta.monto_inicial_objetivo ?? 0);
   const esCasa = propiedad?.tipo === 'casa';
-  const descuentoLocal = parseMoney(descuentoMonto);
+  const objetivoLocal = parseAmountInput(objetivo || '0');
+  const descuentoLocal = parseAmountInput(descuentoMonto);
   const descuento = esCasa ? (Number.isFinite(descuentoLocal) ? descuentoLocal : Number(venta.descuento_monto ?? 0)) : 0;
-  const pct = objNum > 0 ? Math.min(100, (totalHastaInicialVentaMoneda / objNum) * 100) : 0;
-  const completa = objNum > 0 && totalHastaInicialVentaMoneda >= objNum;
+  const objetivoActual = Number.isFinite(objetivoLocal) ? objetivoLocal : objNum;
+  const pct = objetivoActual > 0 ? Math.min(100, (totalHastaInicialVentaMoneda / objetivoActual) * 100) : 0;
+  const completa = objetivoActual > 0 && totalHastaInicialVentaMoneda >= objetivoActual;
 
   const guardarConfiguracionInicial = async (refresh = true) => {
     setError(null);
-    const objetivoNum = parseMoney(objetivo || '0');
-    const descuentoNum = parseMoney(descuentoMonto || '0');
+    const objetivoNum = parseAmountInput(objetivo || '0');
+    const descuentoNum = parseAmountInput(descuentoMonto || '0');
     if (!Number.isFinite(objetivoNum) || objetivoNum < 0) {
       throw new Error('Ingresa un monto objetivo valido.');
     }
@@ -144,7 +147,7 @@ export function InicialTab({
           <Metric label="Pago separacion" value={formatBreakdown(totalSeparacion)} />
           <Metric label="Abonado inicial" value={formatBreakdown(totalInicial)} />
           <Metric label="Total hasta inicial" value={formatBreakdown(totalHastaInicial)} />
-          <Metric label="Saldo inicial" value={formatMoney(Math.max(0, objNum - totalHastaInicialVentaMoneda), venta.moneda)} />
+          <Metric label="Saldo inicial" value={formatMoney(Math.max(0, objetivoActual - totalHastaInicialVentaMoneda), venta.moneda)} />
           {esCasa && <Metric label="Descuento" value={formatMoney(descuento, venta.moneda)} />}
           <Metric label="Limite inicial" value={formatDate(venta.fecha_limite_inicial)} />
         </div>
@@ -312,10 +315,4 @@ function formatBreakdown(totals: Record<Moneda, number>): string {
   if (totals.PEN) parts.push(formatMoney(totals.PEN, 'PEN'));
   if (totals.USD) parts.push(formatMoney(totals.USD, 'USD'));
   return parts.length ? parts.join(' / ') : formatMoney(0, 'PEN');
-}
-
-function parseMoney(value: string): number {
-  const normalized = (value ?? '').trim().replace(',', '.');
-  const n = Number(normalized || 0);
-  return Number.isFinite(n) ? n : NaN;
 }

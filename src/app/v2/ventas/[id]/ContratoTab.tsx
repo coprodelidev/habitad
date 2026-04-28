@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { supabaseV2 } from '@/lib/v2/supabaseV2';
 import type { Venta, Propiedad, Cliente, Pago, Cuota, ModalidadPago } from '@/lib/v2/types';
 import { formatDate, formatMoney } from '@/lib/v2/format';
+import { parseAmountInput } from '@/lib/v2/amount';
 
 const TERRENO_MODALIDADES: { v: ModalidadPago; label: string; desc: string }[] = [
   { v: 'contado', label: 'Terreno al contado', desc: 'Cancelacion completa sin cuotas' },
@@ -65,7 +66,10 @@ export function ContratoTab({
   const descuento = esCasa ? Number(venta.descuento_monto ?? 0) : 0;
   const saldoCuotas = Math.max(0, Number(venta.precio_acordado) - totalPagado - descuento);
   const mesesNum = Math.min(96, Math.max(1, Number(meses || 0)));
-  const montoCuota = saldoCuotas / mesesNum;
+  const tasaInteresNum = parseAmountInput(tasaInteres || '0');
+  const bonoMontoNum = parseAmountInput(bonoMonto || '0');
+  const aplicaInteres = modalidad === 'cuotas_con_interes' && !esCasa;
+  const montoCuota = calcularCuotaMensual(saldoCuotas, mesesNum, aplicaInteres ? tasaInteresNum : 0);
   const esContado = modalidad === 'contado';
   const esBono = modalidad === 'bono_mivivienda';
   const fechaFinal = !esContado ? calcFechaFinal(primeraCuota, mesesNum) : null;
@@ -74,13 +78,20 @@ export function ContratoTab({
   const saveModalidad = async () => {
     setSavingMod(true);
     setError(null);
+    if (aplicaInteres && (!Number.isFinite(tasaInteresNum) || tasaInteresNum < 0)) {
+      setSavingMod(false);
+      throw new Error('Ingresa una tasa de interes valida.');
+    }
+    if (esBono && bonoMonto && (!Number.isFinite(bonoMontoNum) || bonoMontoNum < 0)) {
+      setSavingMod(false);
+      throw new Error('Ingresa un monto de bono valido.');
+    }
     const update: any = { modalidad_pago: modalidad };
-    if (modalidad === 'cuotas_con_interes') update.tasa_interes_anual = Number(tasaInteres || 8);
-    if (modalidad === 'bono_mivivienda') update.mivivienda_bono_monto = bonoMonto ? Number(bonoMonto) : null;
+    if (modalidad === 'cuotas_con_interes') update.tasa_interes_anual = Number.isFinite(tasaInteresNum) ? tasaInteresNum : 8;
+    if (modalidad === 'bono_mivivienda') update.mivivienda_bono_monto = bonoMonto ? bonoMontoNum : null;
     const { error } = await supabaseV2.from('ventas').update(update).eq('id', venta.id);
     setSavingMod(false);
-    if (error) setError(error.message);
-    else onChange();
+    if (error) throw error;
   };
 
   const generarContrato = async () => {
@@ -90,9 +101,10 @@ export function ContratoTab({
       await saveModalidad();
 
       if (!esContado && cuotas.length === 0) {
-        const cuotaBase = Math.round((saldoCuotas / mesesNum) * 100) / 100;
+        const cuotaBase = Math.round(montoCuota * 100) / 100;
         const totalRedondeado = cuotaBase * (mesesNum - 1);
-        const ultimaCuota = Math.round((saldoCuotas - totalRedondeado) * 100) / 100;
+        const totalCronograma = Math.round((montoCuota * mesesNum) * 100) / 100;
+        const ultimaCuota = Math.round((totalCronograma - totalRedondeado) * 100) / 100;
         const rows = Array.from({ length: mesesNum }, (_, i) => {
           const fecha = new Date(primeraCuota);
           fecha.setMonth(fecha.getMonth() + i);
@@ -270,4 +282,11 @@ function calcFechaFinal(primeraCuota: string, meses: number): Date | null {
   if (Number.isNaN(fecha.getTime())) return null;
   fecha.setMonth(fecha.getMonth() + Math.max(0, meses - 1));
   return fecha;
+}
+
+function calcularCuotaMensual(principal: number, meses: number, tasaAnual: number): number {
+  if (!(principal > 0) || !(meses > 0)) return 0;
+  if (!(tasaAnual > 0)) return principal / meses;
+  const tasaMensual = tasaAnual / 100 / 12;
+  return principal * (tasaMensual / (1 - Math.pow(1 + tasaMensual, -meses)));
 }

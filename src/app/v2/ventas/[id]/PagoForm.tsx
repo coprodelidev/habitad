@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabaseV2, supabasePublic } from '@/lib/v2/supabaseV2';
 import type { Venta, Moneda, TipoPago } from '@/lib/v2/types';
+import { parseAmountInput } from '@/lib/v2/amount';
 
 interface Props {
   venta: Venta;
@@ -30,7 +31,7 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
   const canSave = !!(
     form.fecha_deposito &&
     form.banco &&
-    parseMonto(form.monto) > 0 &&
+    parseAmountInput(form.monto) > 0 &&
     (!voucherRequired || !!voucher)
   );
 
@@ -53,7 +54,7 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
   const save = async () => {
     setError(null);
 
-    const montoNum = parseMonto(form.monto);
+    const montoNum = parseAmountInput(form.monto);
     if (!form.fecha_deposito) {
       setError('La fecha de deposito es obligatoria.');
       return;
@@ -159,7 +160,7 @@ export function PagoForm({ venta, tipo, cuotaNumero, onClose, onSaved }: Props) 
               className={inp}
               value={form.monto}
               onChange={(e) => setForm({ ...form, monto: e.target.value })}
-              placeholder="Ej: 1500.50 o 1500,50"
+              placeholder="Ej: 1500.50 / 1500,50 / 1,500"
             />
           </Field>
           <Field label={`Voucher ${voucherRequired ? '*' : ''}`}>
@@ -192,10 +193,4 @@ function Field({ label, children, full }: { label: string; children: React.React
       {children}
     </div>
   );
-}
-
-function parseMonto(raw: string): number {
-  const normalized = (raw ?? '').trim().replace(',', '.');
-  const n = Number(normalized);
-  return Number.isFinite(n) ? n : NaN;
 }

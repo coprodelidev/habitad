@@ -5,6 +5,7 @@ import { supabaseV2, supabasePublic } from '@/lib/v2/supabaseV2';
 import type { ModalidadPago, Moneda, Propiedad, TipoSeparacion } from '@/lib/v2/types';
 import { formatMoney } from '@/lib/v2/format';
 import { UbigeoAutocomplete } from '@/components/v2/UbigeoAutocomplete';
+import { parseAmountInput } from '@/lib/v2/amount';
 
 const TIPOS_VIA = ['Avenida', 'Jr.', 'Calle', 'Pasaje'];
 const TIPOS_ZONA = ['Urb.', 'AA.HH.', 'Caserio', 'P.J.', 'Asociacion'];
@@ -79,31 +80,41 @@ export function NuevaSeparacionModal({
         throw new Error('Ingresa un correo válido.');
       }
 
+      const montoInicialObjetivo = parseAmountInput(form.monto_inicial_objetivo || '0');
+      if (!Number.isFinite(montoInicialObjetivo) || montoInicialObjetivo < 0) {
+        throw new Error('Ingresa un monto objetivo de inicial valido.');
+      }
+
       let clienteId: string | null = null;
       const { data: existingId } = await supabaseV2.rpc('buscar_cliente_por_dni', { p_dni: form.dni });
+      const { data: userData } = await supabasePublic.auth.getUser();
+      const clientePayload = {
+        nombres: nombresCompletos,
+        apellidos: apellidosCompletos,
+        dni: form.dni,
+        telefono: form.telefono || null,
+        email: form.email || null,
+        segundo_nombre: form.segundo_nombre || null,
+        apellido_paterno: form.apellido_paterno || null,
+        apellido_materno: form.apellido_materno || null,
+        tipo_via: form.tipo_via || null,
+        tipo_zona: form.tipo_zona || null,
+        zona_nombre: form.zona_nombre || null,
+        direccion_mz: form.direccion_mz || null,
+        direccion_lt: form.direccion_lt || null,
+        numero_puerta: form.numero_puerta || null,
+        interior: form.interior || null,
+        referencia: form.referencia || null,
+        urbanizacion: form.urbanizacion || null,
+        ubigeo_cod: form.ubigeo_cod || null,
+      };
       if (existingId) {
         clienteId = existingId as string;
+        const upd = await supabaseV2.from('clientes').update(clientePayload).eq('id', clienteId);
+        if (upd.error) throw upd.error;
       } else {
-        const { data: userData } = await supabasePublic.auth.getUser();
         const ins = await supabaseV2.from('clientes').insert({
-          nombres: nombresCompletos,
-          apellidos: apellidosCompletos,
-          dni: form.dni,
-          telefono: form.telefono || null,
-          email: form.email || null,
-          segundo_nombre: form.segundo_nombre || null,
-          apellido_paterno: form.apellido_paterno || null,
-          apellido_materno: form.apellido_materno || null,
-          tipo_via: form.tipo_via || null,
-          tipo_zona: form.tipo_zona || null,
-          zona_nombre: form.zona_nombre || null,
-          direccion_mz: form.direccion_mz || null,
-          direccion_lt: form.direccion_lt || null,
-          numero_puerta: form.numero_puerta || null,
-          interior: form.interior || null,
-          referencia: form.referencia || null,
-          urbanizacion: form.urbanizacion || null,
-          ubigeo_cod: form.ubigeo_cod || null,
+          ...clientePayload,
           created_by: userData.user?.id ?? null,
         }).select('id').single();
         if (ins.error) throw ins.error;
@@ -125,7 +136,7 @@ export function NuevaSeparacionModal({
         moneda: form.moneda,
         tipo_separacion: form.tipo_separacion,
         modalidad_pago: form.modalidad_pago,
-        monto_inicial_objetivo: form.monto_inicial_objetivo ? Number(form.monto_inicial_objetivo) : null,
+        monto_inicial_objetivo: montoInicialObjetivo || null,
         fecha_separacion: now.toISOString(),
         fecha_vencimiento_separacion: vencimiento.toISOString(),
       });
@@ -222,10 +233,8 @@ export function NuevaSeparacionModal({
               </Field>
               <Field label="Monto objetivo de inicial" full>
                 <input
-                  type="number"
-                  step="0.01"
                   className={inp}
-                  placeholder="Puede ser mayor al 5%"
+                  placeholder="Puede ser mayor al 5% (ej. 1500.50)"
                   value={form.monto_inicial_objetivo}
                   onChange={(e) => setForm({ ...form, monto_inicial_objetivo: e.target.value })}
                 />
