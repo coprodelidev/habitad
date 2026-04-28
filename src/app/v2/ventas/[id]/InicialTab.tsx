@@ -28,6 +28,8 @@ export function InicialTab({
   const [descuentoMonto, setDescuentoMonto] = useState(venta.descuento_monto?.toString() ?? '');
   const [descuentoDescripcion, setDescuentoDescripcion] = useState(venta.descuento_descripcion ?? '');
   const [savingObj, setSavingObj] = useState(false);
+  const [savingConfirm, setSavingConfirm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [viewing, setViewing] = useState<string | null>(null);
 
   const pagosSeparacion = pagos.filter((p) => p.tipo === 'separacion' && p.estado !== 'anulado');
@@ -39,25 +41,70 @@ export function InicialTab({
   const totalHastaInicialVentaMoneda = totalHastaInicial[venta.moneda] ?? 0;
   const objNum = Number(venta.monto_inicial_objetivo ?? 0);
   const esCasa = propiedad?.tipo === 'casa';
-  const descuento = esCasa ? Number(venta.descuento_monto ?? 0) : 0;
+  const descuentoLocal = parseMoney(descuentoMonto);
+  const descuento = esCasa ? (Number.isFinite(descuentoLocal) ? descuentoLocal : Number(venta.descuento_monto ?? 0)) : 0;
   const pct = objNum > 0 ? Math.min(100, (totalHastaInicialVentaMoneda / objNum) * 100) : 0;
   const completa = objNum > 0 && totalHastaInicialVentaMoneda >= objNum;
 
-  const guardarObjetivo = async () => {
+  const guardarConfiguracionInicial = async (refresh = true) => {
+    setError(null);
+    const objetivoNum = parseMoney(objetivo || '0');
+    const descuentoNum = parseMoney(descuentoMonto || '0');
+    if (!Number.isFinite(objetivoNum) || objetivoNum < 0) {
+      throw new Error('Ingresa un monto objetivo valido.');
+    }
+    if (esCasa && (!Number.isFinite(descuentoNum) || descuentoNum < 0)) {
+      throw new Error('Ingresa un monto de descuento valido.');
+    }
     setSavingObj(true);
-    await supabaseV2.from('ventas').update({
-      monto_inicial_objetivo: Number(objetivo || 0),
+    const { error: updateError } = await supabaseV2.from('ventas').update({
+      monto_inicial_objetivo: objetivoNum,
       descuento_tipo: esCasa ? descuentoTipo || null : null,
-      descuento_monto: esCasa && descuentoMonto ? Number(descuentoMonto) : 0,
+      descuento_monto: esCasa ? descuentoNum : 0,
       descuento_descripcion: esCasa ? descuentoDescripcion || null : null,
     }).eq('id', venta.id);
     setSavingObj(false);
-    onChange();
+    if (updateError) throw updateError;
+    if (refresh) onChange();
+  };
+
+  const guardarObjetivo = async () => {
+    try {
+      await guardarConfiguracionInicial();
+    } catch (e: any) {
+      setSavingObj(false);
+      setError(e?.message ?? String(e));
+    }
+  };
+
+  const abrirRegistroAbono = async () => {
+    if (!canOperate || venta.fecha_inicial_completa) return;
+    try {
+      await guardarConfiguracionInicial(false);
+      setShowForm(true);
+    } catch (e: any) {
+      setSavingObj(false);
+      setError(e?.message ?? String(e));
+    }
   };
 
   const marcarInicialCompleta = async () => {
-    await supabaseV2.from('ventas').update({ fecha_inicial_completa: new Date().toISOString() }).eq('id', venta.id);
-    onChange();
+    setSavingConfirm(true);
+    setError(null);
+    try {
+      await guardarConfiguracionInicial(false);
+      const { error: updateError } = await supabaseV2
+        .from('ventas')
+        .update({ fecha_inicial_completa: new Date().toISOString() })
+        .eq('id', venta.id);
+      if (updateError) throw updateError;
+      onChange();
+    } catch (e: any) {
+      setError(e?.message ?? String(e));
+    } finally {
+      setSavingConfirm(false);
+      setSavingObj(false);
+    }
   };
 
   return (
@@ -66,10 +113,11 @@ export function InicialTab({
         <h3 className="text-lg font-semibold">Inicial</h3>
         {canOperate && (
           <button
-            onClick={() => setShowForm(true)}
-            className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-500"
+            onClick={abrirRegistroAbono}
+            disabled={savingObj || !!venta.fecha_inicial_completa}
+            className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-500 disabled:opacity-50"
           >
-            Registrar abono
+            {savingObj ? 'Guardando...' : 'Registrar abono'}
           </button>
         )}
       </div>
@@ -137,15 +185,29 @@ export function InicialTab({
             />
           </div>
         </div>}
+        {esCasa && canOperate && !venta.fecha_inicial_completa && (
+          <button
+            onClick={guardarObjetivo}
+            disabled={savingObj}
+            className="mt-3 rounded bg-slate-700 px-3 py-1.5 text-xs text-white disabled:opacity-50"
+          >
+            {savingObj ? 'Guardando...' : 'Guardar objetivo y descuento'}
+          </button>
+        )}
 
         <div className="mt-3 h-2 w-full rounded bg-slate-100">
           <div className={`h-full rounded ${completa ? 'bg-green-500' : 'bg-indigo-500'}`} style={{ width: `${pct}%` }} />
         </div>
         <div className="mt-1 text-xs text-slate-500">{pct.toFixed(1)}% completado</div>
+        {error && <div className="mt-3 rounded bg-red-50 p-2 text-sm text-red-700">{error}</div>}
 
         {completa && !venta.fecha_inicial_completa && canOperate && (
-          <button onClick={marcarInicialCompleta} className="mt-3 rounded bg-green-600 px-3 py-1.5 text-sm text-white">
-            Confirmar inicial completa y habilitar contrato
+          <button
+            onClick={marcarInicialCompleta}
+            disabled={savingConfirm || savingObj}
+            className="mt-3 rounded bg-green-600 px-3 py-1.5 text-sm text-white disabled:opacity-50"
+          >
+            {savingConfirm ? 'Confirmando...' : 'Confirmar inicial completa y habilitar contrato'}
           </button>
         )}
       </div>
@@ -250,4 +312,10 @@ function formatBreakdown(totals: Record<Moneda, number>): string {
   if (totals.PEN) parts.push(formatMoney(totals.PEN, 'PEN'));
   if (totals.USD) parts.push(formatMoney(totals.USD, 'USD'));
   return parts.length ? parts.join(' / ') : formatMoney(0, 'PEN');
+}
+
+function parseMoney(value: string): number {
+  const normalized = (value ?? '').trim().replace(',', '.');
+  const n = Number(normalized || 0);
+  return Number.isFinite(n) ? n : NaN;
 }
