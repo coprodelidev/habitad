@@ -63,8 +63,20 @@ export function NuevaSeparacionModal({
     setSaving(true);
     setError(null);
     try {
-      if (!form.nombres || !form.apellido_paterno || !form.dni) {
-        throw new Error('Nombres, apellido paterno y DNI son obligatorios');
+      const missing: string[] = [];
+      if (!form.nombres.trim()) missing.push('Primer nombre');
+      if (!form.apellido_paterno.trim()) missing.push('Apellido paterno');
+      if (!form.dni.trim()) missing.push('DNI');
+      if (!form.email.trim()) missing.push('Correo');
+      if (!form.direccion_mz.trim()) missing.push('Manzana');
+      if (!form.direccion_lt.trim()) missing.push('Lote');
+      if (!form.ubigeo_cod.trim()) missing.push('Ubigeo');
+      if (missing.length) {
+        throw new Error(`Completa los campos obligatorios: ${missing.join(', ')}`);
+      }
+      const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
+      if (!emailOk) {
+        throw new Error('Ingresa un correo válido.');
       }
 
       let clienteId: string | null = null;
@@ -127,7 +139,15 @@ export function NuevaSeparacionModal({
     }
   };
 
-  const canSave = form.nombres && form.apellido_paterno && form.dni;
+  const canSave = !!(
+    form.nombres.trim() &&
+    form.apellido_paterno.trim() &&
+    form.dni.trim() &&
+    form.email.trim() &&
+    form.direccion_mz.trim() &&
+    form.direccion_lt.trim() &&
+    form.ubigeo_cod.trim()
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -169,7 +189,7 @@ export function NuevaSeparacionModal({
               <Field label="Telefono">
                 <input className={inp} value={form.telefono} onChange={(e) => setForm({ ...form, telefono: e.target.value })} />
               </Field>
-              <Field label="Correo" full>
+              <Field label="Correo *" full>
                 <input type="email" className={inp} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               </Field>
             </div>
@@ -233,10 +253,10 @@ export function NuevaSeparacionModal({
               <Field label="Nombre de la zona">
                 <input className={inp} placeholder="Ej: Las Palmeras" value={form.zona_nombre} onChange={(e) => setForm({ ...form, zona_nombre: e.target.value })} />
               </Field>
-              <Field label="Manzana">
+              <Field label="Manzana *">
                 <input className={inp} value={form.direccion_mz} onChange={(e) => setForm({ ...form, direccion_mz: e.target.value })} />
               </Field>
-              <Field label="Lote">
+              <Field label="Lote *">
                 <input className={inp} value={form.direccion_lt} onChange={(e) => setForm({ ...form, direccion_lt: e.target.value })} />
               </Field>
               <Field label="Interior/Dpto">
@@ -245,7 +265,7 @@ export function NuevaSeparacionModal({
               <Field label="Urbanizacion" full>
                 <input className={inp} value={form.urbanizacion} onChange={(e) => setForm({ ...form, urbanizacion: e.target.value })} />
               </Field>
-              <Field label="Ubigeo" full>
+              <Field label="Ubigeo *" full>
                 <UbigeoAutocomplete
                   value={form.ubigeo_cod}
                   onChange={(cod) => setForm({ ...form, ubigeo_cod: cod ?? '' })}

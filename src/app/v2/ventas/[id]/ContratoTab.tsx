@@ -57,6 +57,7 @@ export function ContratoTab({
   const [generating, setGenerating] = useState(false);
   const [savingMod, setSavingMod] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mesesAviso, setMesesAviso] = useState<string | null>(null);
 
   const totalPagado = pagos
     .filter((p) => p.estado !== 'anulado' && p.moneda === venta.moneda && (p.tipo === 'separacion' || p.tipo === 'inicial'))
@@ -123,6 +124,28 @@ export function ContratoTab({
     }
   };
 
+  const onMesesChange = (value: string) => {
+    if (value === '') {
+      setMeses(value);
+      setMesesAviso(null);
+      return;
+    }
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return;
+    if (parsed > 96) {
+      setMeses('96');
+      setMesesAviso('Máximo permitido: 96 cuotas (8 años).');
+      return;
+    }
+    if (parsed < 1) {
+      setMeses('1');
+      setMesesAviso('Mínimo permitido: 1 cuota.');
+      return;
+    }
+    setMeses(String(Math.trunc(parsed)));
+    setMesesAviso(null);
+  };
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Contrato y cronograma</h3>
@@ -174,7 +197,8 @@ export function ContratoTab({
               <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-xs text-slate-600">Cantidad de cuotas (maximo 96)</label>
-                  <input type="number" min={1} max={96} value={meses} onChange={(e) => setMeses(e.target.value)} className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" />
+                  <input type="number" min={1} max={96} value={meses} onChange={(e) => onMesesChange(e.target.value)} className="h-9 w-full rounded-md border border-slate-300 px-3 text-sm" />
+                  {mesesAviso && <div className="mt-1 text-xs text-amber-700">{mesesAviso}</div>}
                 </div>
                 <div>
                   <label className="mb-1 block text-xs text-slate-600">Mes inicial / primera cuota</label>
