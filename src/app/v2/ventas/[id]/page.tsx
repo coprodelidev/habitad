@@ -74,7 +74,12 @@ export default function VentaDetailPage() {
     { k: 'inicial', label: 'Inicial', visible: venta.estado !== 'separacion' || !!venta.fecha_pago_separacion },
     { k: 'contrato', label: 'Contrato', visible: ['inicial', 'cuotas', 'entregada'].includes(venta.estado) },
     { k: 'cuotas', label: 'Cuotas', visible: ['cuotas', 'entregada'].includes(venta.estado) },
-    { k: 'mivivienda', label: 'MiVivienda', visible: propiedad?.tipo === 'casa' && venta.modalidad_pago === 'bono_mivivienda' },
+    { k: 'mivivienda', label: 'MiVivienda', visible:
+        propiedad?.tipo === 'casa'
+        || venta.modalidad_pago === 'bono_mivivienda'
+        || venta.fmv_precio != null
+        || venta.fmv_bono_real != null
+        || venta.fmv_estado_expediente != null },
     { k: 'corte', label: 'Corte cancelacion', visible: propiedad?.tipo === 'casa' && ['cuotas', 'entregada'].includes(venta.estado) },
   ];
 
