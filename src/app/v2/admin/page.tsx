@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, Sliders, FileClock, Layers, DollarSign } from 'lucide-react';
+import { Users, Sliders, FileClock, Layers, DollarSign, Upload } from 'lucide-react';
 import { useV2User } from '@/lib/v2/useV2User';
 import { isAdmin } from '@/lib/v2/permissions';
 
@@ -11,6 +11,7 @@ const TILES = [
   { href: '/v2/admin/auditoria', icon: FileClock, title: 'Auditoría', desc: 'Historial append-only de cambios' },
   { href: '/v2/admin/etapas', icon: Layers, title: 'Etapas', desc: 'Subproyectos y planos' },
   { href: '/v2/admin/tipo-cambio', icon: DollarSign, title: 'Tipo de cambio SBS', desc: 'Cache diario PEN/USD' },
+  { href: '/v2/admin/imports', icon: Upload, title: 'Importar CUH', desc: 'Cargar XLSX operativo y promover a v2' },
 ];
 
 export default function AdminHome() {
