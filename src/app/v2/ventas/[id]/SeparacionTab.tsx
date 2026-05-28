@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import type { Venta, Pago } from '@/lib/v2/types';
+import type { Venta, Pago, ConceptoCliente } from '@/lib/v2/types';
 import { PagoForm } from './PagoForm';
 import { supabaseV2 } from '@/lib/v2/supabaseV2';
 import { formatDate, formatMoney } from '@/lib/v2/format';
@@ -24,6 +24,22 @@ export function SeparacionTab({
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewing, setViewing] = useState<string | null>(null);
+  const [conceptos, setConceptos] = useState<ConceptoCliente[]>([]);
+  const [conceptoSel, setConceptoSel] = useState<string>(venta.concepto_cliente ?? '');
+  const [savingConcepto, setSavingConcepto] = useState(false);
+
+  useEffect(() => {
+    supabaseV2.from('conceptos_cliente').select('*').eq('activo', true).order('codigo').then((res: any) => {
+      setConceptos((res?.data ?? []) as ConceptoCliente[]);
+    });
+  }, []);
+
+  const saveConcepto = async () => {
+    setSavingConcepto(true);
+    await supabaseV2.from('ventas').update({ concepto_cliente: conceptoSel || null }).eq('id', venta.id);
+    setSavingConcepto(false);
+    onChange();
+  };
 
   const pagosSeparacion = pagos.filter((p) => p.tipo === 'separacion' && p.estado !== 'anulado');
   const total = pagosSeparacion.reduce((a, p) => a + Number(p.monto), 0);
@@ -62,6 +78,30 @@ export function SeparacionTab({
               className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-500"
             >
               Registrar pago
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-sm">
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <label className="mb-1 block text-xs font-medium text-indigo-900">Concepto del cliente</label>
+            <select
+              className="h-8 w-full rounded border border-indigo-300 bg-white px-2 text-sm"
+              value={conceptoSel}
+              onChange={(e) => setConceptoSel(e.target.value)}
+              disabled={!canOperate}
+            >
+              <option value="">— sin concepto —</option>
+              {conceptos.map((c) => (
+                <option key={c.codigo} value={c.codigo}>{c.codigo}{c.descripcion ? ` · ${c.descripcion}` : ''}</option>
+              ))}
+            </select>
+          </div>
+          {canOperate && conceptoSel !== (venta.concepto_cliente ?? '') && (
+            <button onClick={saveConcepto} disabled={savingConcepto} className="h-8 rounded bg-indigo-600 px-3 text-xs text-white hover:bg-indigo-500 disabled:opacity-50">
+              {savingConcepto ? 'Guardando…' : 'Guardar'}
             </button>
           )}
         </div>

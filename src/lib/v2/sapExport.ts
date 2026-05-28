@@ -70,6 +70,27 @@ export interface SapVentaLike {
     tc_sbs?: number | null;
     estado?: string | null;
   }> | null;
+  // Fase 1 — campos nativos preferidos sobre adicionales jsonb
+  concepto_cliente?: string | null;
+  valor_adicional_cv?: number | null;
+  abonos_cv?: number | null;
+  fmv_precio?: number | null;
+  fmv_bono_real?: number | null;
+  fmv_abono_cliente?: number | null;
+  fmv_donacion_coprodeli?: number | null;
+  fmv_gastos_administrativos?: number | null;
+  fmv_saldo?: number | null;
+  fmv_origen_bono?: string | null;
+  fmv_fecha_desembolso?: string | null;
+  fmv_estado_expediente?: string | null;
+  // Item mapping SAP (vendría de v2.sap_item_mapping)
+  sap_item_mapping?: {
+    item_code?: string | null;
+    warehouse_code?: string | null;
+    ubicacion_sap?: string | null;
+  } | null;
+  // Comisión calculada (vendría de v2.fn_calcular_comision)
+  comision_calculada?: number | null;
 }
 
 const MAESTRO_HEADERS = [
@@ -377,9 +398,9 @@ export function buildOrdenesVentaAoa(ventas: SapVentaLike[], promotores: SapProm
     const separacionMonto = sumByTipo(venta, 'separacion');
     const inicialPagada = sumByTipo(venta, 'inicial');
     const docTotal = Number(venta.precio_acordado ?? 0);
-    const itemCode = String(safeAdditional(venta, 'sap_item_code') ?? venta.propiedad?.cuh ?? '').trim();
+    const itemCode = String(venta.sap_item_mapping?.item_code ?? safeAdditional(venta, 'sap_item_code') ?? venta.propiedad?.cuh ?? '').trim();
     const itemDescription = String(safeAdditional(venta, 'sap_item_description') ?? buildItemDescription(venta)).trim();
-    const warehouseCode = String(safeAdditional(venta, 'sap_warehouse_code') ?? 'SFERN').trim();
+    const warehouseCode = String(venta.sap_item_mapping?.warehouse_code ?? safeAdditional(venta, 'sap_warehouse_code') ?? 'SFERN').trim();
     const programCode = parseOptionalNumber(safeAdditional(venta, 'sap_programa')) ?? 6;
     const costCenter = parseOptionalNumber(safeAdditional(venta, 'sap_centro_costo')) ?? 604;
     const financeCode = String(safeAdditional(venta, 'sap_finanza') ?? 'F02').trim();
@@ -414,8 +435,14 @@ export function buildOrdenesVentaAoa(ventas: SapVentaLike[], promotores: SapProm
     setOrdenValue(row, 'U_SYP_OBS_VENTAS', cuotasCount > 0 ? 'Rec BIF' : '');
     setOrdenValue(row, 'U_SYP_SITUACION', tipoSituacion);
     setOrdenValue(row, 'U_SYP_EXPED', promotor.name);
-    setOrdenValue(row, 'U_SYP_VALORBONO', Number(safeAdditional(venta, 'sap_valor_bono') ?? 0) || '');
-    setOrdenValue(row, 'U_SYP_GASTOSDMIN', Number(safeAdditional(venta, 'sap_gastos_admin') ?? 0) || '');
+    setOrdenValue(row, 'U_SYP_VALORBONO', Number(venta.fmv_bono_real ?? safeAdditional(venta, 'sap_valor_bono') ?? 0) || '');
+    setOrdenValue(row, 'U_SYP_GASTOSDMIN', Number(venta.fmv_gastos_administrativos ?? safeAdditional(venta, 'sap_gastos_admin') ?? 0) || '');
+    setOrdenValue(row, 'U_SYP_DONACION', Number(venta.fmv_donacion_coprodeli ?? 0) || '');
+    setOrdenValue(row, 'U_SYP_AHORRO', Number(venta.fmv_abono_cliente ?? 0) || '');
+    setOrdenValue(row, 'U_SYP_INFMV', venta.fmv_estado_expediente === 'cf_desembolsado' ? 'OK' : '');
+    setOrdenValue(row, 'U_SYP_VACOPRODELI', Number(venta.fmv_donacion_coprodeli ?? 0) || '');
+    setOrdenValue(row, 'U_SYP_VACOPROVIDIG', Number(venta.valor_adicional_cv ?? 0) || '');
+    setOrdenValue(row, 'U_SYP_COM1', Number(venta.comision_calculada ?? 0) || '');
     setOrdenValue(row, 'U_SYP_COGRUPO', grupoIntegrante);
     setOrdenValue(row, 'U_SYP_PROGRAMA', programCode);
     setOrdenValue(row, 'U_SYP_CCCENCO', costCenter);

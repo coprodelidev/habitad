@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Users, Sliders, FileClock, Layers, DollarSign } from 'lucide-react';
+import { Users, Sliders, FileClock, Layers, DollarSign, Upload, Tag, Percent, Database } from 'lucide-react';
 import { useV2User } from '@/lib/v2/useV2User';
 import { isAdmin } from '@/lib/v2/permissions';
 
@@ -11,6 +11,10 @@ const TILES = [
   { href: '/v2/admin/auditoria', icon: FileClock, title: 'Auditoría', desc: 'Historial append-only de cambios' },
   { href: '/v2/admin/etapas', icon: Layers, title: 'Etapas', desc: 'Subproyectos y planos' },
   { href: '/v2/admin/tipo-cambio', icon: DollarSign, title: 'Tipo de cambio SBS', desc: 'Cache diario PEN/USD' },
+  { href: '/v2/admin/imports', icon: Upload, title: 'Importar CUH', desc: 'Cargar XLSX operativo y promover a v2' },
+  { href: '/v2/admin/conceptos-cliente', icon: Tag, title: 'Conceptos de cliente', desc: 'Catálogo BENEFICIARIO/NUEVO/DESPLAZADO/...' },
+  { href: '/v2/admin/comisiones', icon: Percent, title: 'Comisiones por avance', desc: 'Escala de hitos + resumen por venta' },
+  { href: '/v2/admin/catalogos-sap', icon: Database, title: 'Catálogos SAP', desc: 'Almacén, programa, partidas e item mapping' },
 ];
 
 export default function AdminHome() {
