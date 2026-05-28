@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
-import { FileSpreadsheet, Wand2 } from 'lucide-react';
+import { FileSpreadsheet, Wand2, Percent } from 'lucide-react';
 import { supabaseV2 } from '@/lib/v2/supabaseV2';
 import { formatDate, formatMoney } from '@/lib/v2/format';
 
@@ -147,6 +147,12 @@ export default function ReportesPage() {
           <p className="text-sm text-slate-500">Reportes predefinidos con rango de fechas y exportacion a Excel/PDF</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/v2/reportes/comisiones"
+            className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+          >
+            <Percent className="h-4 w-4" /> Comisiones por avance
+          </Link>
           <Link
             href="/v2/reportes/sap"
             className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"

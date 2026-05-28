@@ -7,7 +7,7 @@ import { canWriteProperty } from '@/lib/v2/permissions';
 import { formatMoney } from '@/lib/v2/format';
 import type { Propiedad, Etapa } from '@/lib/v2/types';
 import { PropiedadModal } from './PropiedadModal';
-import { ImportExcelModal } from './ImportExcelModal';
+import Link from 'next/link';
 import { Plus, Upload, Pencil, Lock, Unlock } from 'lucide-react';
 
 export default function PropiedadesPage() {
@@ -21,8 +21,6 @@ export default function PropiedadesPage() {
   const [estadoFilter, setEstadoFilter] = useState<string>('');
   const [editing, setEditing] = useState<Propiedad | null>(null);
   const [creating, setCreating] = useState(false);
-  const [importing, setImporting] = useState(false);
-
   const canWrite = canWriteProperty(user?.roleCode);
 
   const load = useCallback(async () => {
@@ -78,12 +76,12 @@ export default function PropiedadesPage() {
         </div>
         {canWrite && (
           <div className="flex gap-2">
-            <button
-              onClick={() => setImporting(true)}
+            <Link
+              href="/v2/admin/imports"
               className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
             >
-              <Upload className="h-4 w-4" /> Importar Excel
-            </button>
+              <Upload className="h-4 w-4" /> Importar CUH (XLSX)
+            </Link>
             <button
               onClick={() => setCreating(true)}
               className="inline-flex items-center gap-2 rounded-md bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-500"
@@ -177,13 +175,6 @@ export default function PropiedadesPage() {
           etapas={etapas}
           onClose={() => { setCreating(false); setEditing(null); }}
           onSaved={() => { setCreating(false); setEditing(null); load(); }}
-        />
-      )}
-      {importing && (
-        <ImportExcelModal
-          etapas={etapas}
-          onClose={() => setImporting(false)}
-          onDone={() => { setImporting(false); load(); }}
         />
       )}
     </div>
