@@ -7,6 +7,7 @@ import { useV2User } from '@/lib/v2/useV2User';
 import { isCliente } from '@/lib/v2/permissions';
 import { formatDate, formatMoney } from '@/lib/v2/format';
 import type { Venta, Propiedad, Cuota, Pago, SaldoVenta } from '@/lib/v2/types';
+import { FmvPanel } from '@/components/v2/FmvPanel';
 
 interface MiVenta {
   venta: Venta;
@@ -88,6 +89,10 @@ export default function PortalClientePage() {
               <Metric label="Cuotas pagadas" value={`${cuotas.filter((c) => c.estado === 'pagada').length}/${cuotas.length}`} />
             </div>
           )}
+
+          <div className="mb-4">
+            <FmvPanel venta={venta} />
+          </div>
 
           {cuotas.length > 0 && (
             <details className="mb-3">
