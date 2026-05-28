@@ -162,6 +162,8 @@ export function ContratoTab({
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Contrato y cronograma</h3>
 
+      <AdicionalCvPanel venta={venta} canOperate={canOperate} onChange={onChange} />
+
       {!yaEmitido && (
         <div className="rounded-lg border border-slate-200 bg-white p-4">
           <div className="mb-3 text-sm font-semibold text-slate-900">1. Elegir modalidad de pago</div>
@@ -289,4 +291,65 @@ function calcularCuotaMensual(principal: number, meses: number, tasaAnual: numbe
   if (!(tasaAnual > 0)) return principal / meses;
   const tasaMensual = tasaAnual / 100 / 12;
   return principal * (tasaMensual / (1 - Math.pow(1 + tasaMensual, -meses)));
+}
+
+function AdicionalCvPanel({ venta, canOperate, onChange }: { venta: Venta; canOperate: boolean; onChange: () => void }) {
+  const [valor, setValor] = useState<string>(venta.valor_adicional_cv?.toString() ?? '');
+  const [abonos, setAbonos] = useState<string>(venta.abonos_cv?.toString() ?? '');
+  const [moneda, setMoneda] = useState<'PEN' | 'USD'>(venta.moneda_adicional ?? 'PEN');
+  const [saving, setSaving] = useState(false);
+  const num = (s: string) => (s ? Number(s) : 0);
+  const saldo = num(valor) - num(abonos);
+  const dirty = String(num(valor)) !== String(venta.valor_adicional_cv ?? 0)
+             || String(num(abonos)) !== String(venta.abonos_cv ?? 0)
+             || moneda !== (venta.moneda_adicional ?? 'PEN');
+
+  const save = async () => {
+    setSaving(true);
+    await supabaseV2.from('ventas').update({
+      valor_adicional_cv: num(valor),
+      abonos_cv: num(abonos),
+      moneda_adicional: moneda,
+    }).eq('id', venta.id);
+    setSaving(false);
+    onChange();
+  };
+
+  return (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="font-medium text-amber-900">Valor adicional CV (Coprovidig)</span>
+        {dirty && canOperate && (
+          <button onClick={save} disabled={saving} className="rounded bg-amber-700 px-2 py-0.5 text-xs text-white hover:bg-amber-800 disabled:opacity-50">
+            {saving ? 'Guardando…' : 'Guardar'}
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-4 gap-2 text-xs">
+        <div>
+          <label className="mb-1 block text-amber-800">Valor</label>
+          <input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} disabled={!canOperate}
+            className="h-8 w-full rounded border border-amber-300 bg-white px-2 disabled:bg-amber-100" />
+        </div>
+        <div>
+          <label className="mb-1 block text-amber-800">Abonado</label>
+          <input type="number" step="0.01" value={abonos} onChange={(e) => setAbonos(e.target.value)} disabled={!canOperate}
+            className="h-8 w-full rounded border border-amber-300 bg-white px-2 disabled:bg-amber-100" />
+        </div>
+        <div>
+          <label className="mb-1 block text-amber-800">Moneda</label>
+          <select value={moneda} onChange={(e) => setMoneda(e.target.value as any)} disabled={!canOperate}
+            className="h-8 w-full rounded border border-amber-300 bg-white px-2 disabled:bg-amber-100">
+            <option value="PEN">PEN</option><option value="USD">USD</option>
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-amber-800">Saldo por pagar</label>
+          <div className="h-8 rounded border border-amber-300 bg-white px-2 py-1 font-medium text-amber-900">
+            {saldo.toLocaleString('es-PE', { minimumFractionDigits: 2 })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

@@ -76,7 +76,9 @@ export default function ExportacionSapPage() {
           `
           id, estado, precio_acordado, moneda, fecha_separacion, fecha_inicial_completa, fecha_contrato,
           promotor_id, meses_cuotas, monto_inicial_objetivo,
-          propiedad:propiedades(cuh, tipo, modelo, manzana, lote, area_m2, moneda, adicionales, etapa:etapas(codigo, nombre)),
+          concepto_cliente, valor_adicional_cv, abonos_cv,
+          fmv_precio, fmv_bono_real, fmv_abono_cliente, fmv_donacion_coprodeli, fmv_gastos_administrativos, fmv_saldo, fmv_origen_bono, fmv_fecha_desembolso, fmv_estado_expediente,
+          propiedad:propiedades(cuh, tipo, modelo, manzana, lote, area_m2, moneda, adicionales, etapa:etapas(codigo, nombre), sap_item_mapping(item_code, warehouse_code, ubicacion_sap)),
           cliente:clientes(nombres, apellidos, segundo_nombre, apellido_paterno, apellido_materno, dni, telefono, email, direccion, tipo_via, zona_nombre, direccion_mz, direccion_lt, numero_puerta, interior, referencia, ubigeo_cod, urbanizacion),
           cuotas:cuotas(numero, fecha_vencimiento, monto, estado),
           pagos:pagos(tipo, fecha_deposito, monto, moneda, tc_sbs, estado)
@@ -104,6 +106,26 @@ export default function ExportacionSapPage() {
           if (!u) return v;
           return { ...v, cliente: { ...v.cliente, distrito: u.distrito, provincia: u.provincia, departamento: u.departamento } };
         });
+      }
+
+      // Mover sap_item_mapping de propiedad → venta (sapExport lo lee a nivel venta)
+      ventasList = ventasList.map((v: any) => {
+        const mapping = Array.isArray(v.propiedad?.sap_item_mapping)
+          ? v.propiedad.sap_item_mapping[0]
+          : v.propiedad?.sap_item_mapping;
+        return { ...v, sap_item_mapping: mapping ?? null };
+      });
+
+      // Enriquecer con comisión calculada del backend
+      const ventaIds = ventasList.map((v: any) => v.id);
+      if (ventaIds.length > 0) {
+        const { data: comisiones } = await supabaseV2
+          .from('vw_comisiones_promotor')
+          .select('venta_id, comision_calculada')
+          .in('venta_id', ventaIds);
+        const byVenta: Record<string, number> = {};
+        for (const c of (comisiones ?? []) as any[]) byVenta[c.venta_id] = Number(c.comision_calculada);
+        ventasList = ventasList.map((v: any) => ({ ...v, comision_calculada: byVenta[v.id] ?? null }));
       }
 
       setVentas(ventasList);

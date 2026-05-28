@@ -17,7 +17,17 @@ export type EstadoVenta =
   | 'inicial'
   | 'cuotas'
   | 'cancelada'
+  | 'cancelada_desplazada'
   | 'entregada';
+
+export type FmvOrigenBono = 'cf' | 'recursos_propios';
+export type FmvEstadoExpediente =
+  | 'pendiente'
+  | 'pedir_cf'
+  | 'cf_desembolsado'
+  | 'beneficiario'
+  | 'caducado'
+  | 'rechazado';
 export type TipoPago = 'separacion' | 'inicial' | 'cuota' | 'saldo_favor' | 'otro';
 export type EstadoPago = 'registrado' | 'conciliado' | 'anulado';
 export type EstadoCuota = 'pendiente' | 'parcial' | 'pagada' | 'vencida';
@@ -144,6 +154,42 @@ export interface Venta {
   credito_hipotecario_monto?: number | null;
   credito_hipotecario_fecha_inicio?: string | null;
   credito_hipotecario_fecha_fin?: string | null;
+  // Fase 1 — concepto cliente, valor adicional Coprovidig, bloque FMV operativo
+  concepto_cliente?: string | null;
+  valor_adicional_cv?: number | null;
+  abonos_cv?: number | null;
+  moneda_adicional?: Moneda | null;
+  fmv_precio?: number | null;
+  fmv_bono_real?: number | null;
+  fmv_abono_cliente?: number | null;
+  fmv_donacion_coprodeli?: number | null;
+  fmv_gastos_administrativos?: number | null;
+  fmv_saldo?: number | null;
+  fmv_origen_bono?: FmvOrigenBono | null;
+  fmv_fecha_desembolso?: string | null;
+  fmv_estado_expediente?: FmvEstadoExpediente | null;
+}
+
+export interface ConceptoCliente {
+  codigo: string;
+  descripcion: string | null;
+  activo: boolean;
+}
+
+export interface ComisionEscala {
+  hito: string;
+  porcentaje: number;
+  descripcion: string | null;
+}
+
+export interface SapCatalogo {
+  id: string;
+  tipo: string;
+  clave: string;
+  valor: string;
+  etapa_codigo: string | null;
+  descripcion: string | null;
+  activo: boolean;
 }
 
 export interface Pago {
