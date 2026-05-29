@@ -116,15 +116,21 @@ export default function ExportacionSapPage() {
         return { ...v, sap_item_mapping: mapping ?? null };
       });
 
-      // Enriquecer con comisión calculada del backend
+      // Enriquecer con comisión calculada del backend. PostgREST .in()
+      // construye una URL ?venta_id=in.(uuid1,uuid2,...) que con >200 ids
+      // supera el límite de 8KB. Fetcheamos en chunks de 200.
       const ventaIds = ventasList.map((v: any) => v.id);
       if (ventaIds.length > 0) {
-        const { data: comisiones } = await supabaseV2
-          .from('vw_comisiones_promotor')
-          .select('venta_id, comision_calculada')
-          .in('venta_id', ventaIds);
         const byVenta: Record<string, number> = {};
-        for (const c of (comisiones ?? []) as any[]) byVenta[c.venta_id] = Number(c.comision_calculada);
+        const CHUNK = 200;
+        for (let i = 0; i < ventaIds.length; i += CHUNK) {
+          const slice = ventaIds.slice(i, i + CHUNK);
+          const { data: comisiones } = await supabaseV2
+            .from('vw_comisiones_promotor')
+            .select('venta_id, comision_calculada')
+            .in('venta_id', slice);
+          for (const c of (comisiones ?? []) as any[]) byVenta[c.venta_id] = Number(c.comision_calculada);
+        }
         ventasList = ventasList.map((v: any) => ({ ...v, comision_calculada: byVenta[v.id] ?? null }));
       }
 
