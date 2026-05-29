@@ -95,11 +95,17 @@ export default function ExportacionSapPage() {
 
       // Enriquecer con ubigeos (PostgREST no resuelve FK cross-schema automáticamente
       // para ubigeos cuando supabaseV2 ya está en v2). Hacemos join en cliente.
+      // .in() con muchos ubigeos puede superar el límite de URL de PostgREST.
+      // Chunkeamos a 200 códigos por request.
       const ubigeoCods = Array.from(new Set(ventasList.map((v) => v.cliente?.ubigeo_cod).filter(Boolean))) as string[];
       if (ubigeoCods.length > 0) {
-        const { data: ubigeos } = await supabaseV2.from('ubigeos').select('*').in('codigo', ubigeoCods);
         const byCod: Record<string, any> = {};
-        for (const u of (ubigeos ?? []) as any[]) byCod[u.codigo] = u;
+        const CHUNK_UBI = 200;
+        for (let i = 0; i < ubigeoCods.length; i += CHUNK_UBI) {
+          const slice = ubigeoCods.slice(i, i + CHUNK_UBI);
+          const { data: ubigeos } = await supabaseV2.from('ubigeos').select('*').in('codigo', slice);
+          for (const u of (ubigeos ?? []) as any[]) byCod[u.codigo] = u;
+        }
         ventasList = ventasList.map((v) => {
           if (!v.cliente?.ubigeo_cod) return v;
           const u = byCod[v.cliente.ubigeo_cod];
