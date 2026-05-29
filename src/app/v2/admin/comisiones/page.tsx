@@ -31,7 +31,7 @@ export default function ComisionesPage() {
     setLoading(true);
     const [e, r] = await Promise.all([
       supabaseV2.from('comision_escala').select('*').order('porcentaje'),
-      supabaseV2.from('vw_comisiones_promotor').select('*').limit(500),
+      supabaseV2.from('vw_comisiones_promotor').select('*').limit(5000),
     ]);
     setEscala((e.data ?? []) as ComisionEscala[]);
     setResumen((r.data ?? []) as VistaComision[]);

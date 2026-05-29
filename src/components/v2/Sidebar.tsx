@@ -15,6 +15,8 @@ import {
   ClipboardList,
   Eye,
   Bell,
+  Percent,
+  Users,
 } from 'lucide-react';
 import { isAdmin, isStaff, isAuditor, isCliente, type RoleCode } from '@/lib/v2/permissions';
 import { supabasePublic, supabaseV2 } from '@/lib/v2/supabaseV2';
@@ -34,7 +36,9 @@ const NAV_BASE: NavItem[] = [
   { href: '/v2/plano', label: 'Plano', icon: Map, visible: (r) => isStaff(r) || isAuditor(r) },
   { href: '/v2/propiedades', label: 'Propiedades', icon: Building2, visible: (r) => isStaff(r) || isAuditor(r) },
   { href: '/v2/ventas', label: 'Ventas', icon: ClipboardList, visible: (r) => isStaff(r) || isAuditor(r) },
+  { href: '/v2/clientes', label: 'Clientes', icon: Users, visible: (r) => isStaff(r) },
   { href: '/v2/pagos', label: 'Pagos', icon: CreditCard, visible: (r) => isStaff(r) || isAuditor(r) },
+  { href: '/v2/reportes/comisiones', label: 'Comisiones', icon: Percent, visible: (r) => isStaff(r) },
   { href: '/v2/reportes', label: 'Reportes', icon: BarChart3, visible: (r) => isStaff(r) || isAuditor(r) },
   { href: '/v2/reportes/sap', label: 'Exportacion SAP', icon: FileSpreadsheet, visible: (r) => isStaff(r) || isAuditor(r) },
   { href: '/v2/notificaciones', label: 'Notificaciones', icon: Bell, visible: (r) => isStaff(r) || isAuditor(r) },
