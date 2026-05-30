@@ -41,12 +41,32 @@ export default function NuevoClientePage() {
   useEffect(() => {
     if (!ubigeoQuery || ubigeoQuery.length < 2) { setUbigeoResults([]); return; }
     const t = setTimeout(async () => {
+      const q = ubigeoQuery.trim();
+      // Fetch hasta 100 candidatos y ordenar client-side priorizando
+      // exact match de distrito → empieza con → contiene.
       const { data } = await supabaseV2
         .from('ubigeos')
         .select('codigo, distrito, provincia, departamento')
-        .or(`distrito.ilike.%${ubigeoQuery}%,provincia.ilike.%${ubigeoQuery}%`)
-        .limit(15);
-      setUbigeoResults((data ?? []) as any);
+        .or(`distrito.ilike.%${q}%,provincia.ilike.%${q}%,departamento.ilike.%${q}%`)
+        .limit(100);
+      const qLower = q.toLowerCase();
+      const ranked = ((data ?? []) as any[]).map((u) => {
+        const d = (u.distrito ?? '').toLowerCase();
+        const p = (u.provincia ?? '').toLowerCase();
+        const dep = (u.departamento ?? '').toLowerCase();
+        let score = 9;
+        if (d === qLower) score = 0;
+        else if (d.startsWith(qLower)) score = 1;
+        else if (p === qLower) score = 2;
+        else if (p.startsWith(qLower)) score = 3;
+        else if (dep === qLower) score = 4;
+        else if (dep.startsWith(qLower)) score = 5;
+        else if (d.includes(qLower)) score = 6;
+        else if (p.includes(qLower)) score = 7;
+        return { ...u, _score: score };
+      });
+      ranked.sort((a, b) => a._score - b._score);
+      setUbigeoResults(ranked.slice(0, 15));
     }, 250);
     return () => clearTimeout(t);
   }, [ubigeoQuery]);
@@ -91,7 +111,7 @@ export default function NuevoClientePage() {
 
     setSaving(false);
     if (err) { setError(err.message); return; }
-    router.push('/v2/propiedades');
+    router.push('/v2/clientes');
   };
 
   if (loadingUser) return <div className="p-6 text-sm text-slate-500">Cargando…</div>;
