@@ -3,13 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 
 // Endpoint server-side para insertar filas de staging del XLSX
 // "CUH SAN FERNANDO 2026 CMR". El cliente parsea el XLSX en el browser
-// (libre del límite de 4.5MB de Vercel Hobby) y manda chunks de filas
-// ya mapeadas como objetos staging.
+// (libre del límite de 4.5MB de Vercel Hobby) y manda chunks de filas.
 //
-// Auth: Bearer token de la sesión del usuario. Usamos el cliente con el
-// access token del usuario (no service-role). RLS de v2.import_cuh_staging
-// solo permite INSERT a admin (policy import_cuh_staging_admin_all), así
-// que si el usuario no es admin Postgres devuelve error 42501.
+// AUTHZ EXPLÍCITO: verificamos rol admin antes de INSERT.
+// (Aunque la RLS de import_cuh_staging bloquea INSERT a no-admins, mejor
+// fallar temprano con 403 que con error de Postgres.)
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -23,7 +21,7 @@ export async function POST(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) {
-    return NextResponse.json({ error: 'supabase env missing (NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY)' }, { status: 500 });
+    return NextResponse.json({ error: 'supabase env missing' }, { status: 500 });
   }
 
   const authHeader = req.headers.get('authorization') ?? '';
@@ -32,11 +30,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'unauthorized — missing bearer token' }, { status: 401 });
   }
 
-  // Cliente actuando como el usuario autenticado. RLS valida el rol.
   const userClient = createClient(url, anon, {
     auth: { persistSession: false },
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
+
+  const { data: userData, error: userErr } = await userClient.auth.getUser();
+  if (userErr || !userData?.user) {
+    return NextResponse.json({ error: 'invalid session' }, { status: 401 });
+  }
+
+  const v2 = userClient.schema('v2' as any) as any;
+  const { data: isAdminResult, error: roleErr } = await v2.rpc('is_admin');
+  if (roleErr || !isAdminResult) {
+    return NextResponse.json({ error: 'forbidden — admin only' }, { status: 403 });
+  }
 
   let body: Payload;
   try {
@@ -47,11 +55,13 @@ export async function POST(req: NextRequest) {
   if (!body.batch_id || !Array.isArray(body.rows) || body.rows.length === 0) {
     return NextResponse.json({ error: 'batch_id and rows[] required' }, { status: 400 });
   }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.batch_id)) {
+    return NextResponse.json({ error: 'invalid batch_id format' }, { status: 400 });
+  }
   if (body.rows.length > 5000) {
     return NextResponse.json({ error: 'max 5000 rows per chunk' }, { status: 400 });
   }
 
-  const v2 = userClient.schema('v2' as any) as any;
   const enriched = body.rows.map((r) => {
     const out: any = { ...r, import_batch_id: body.batch_id, status: 'pending' };
     if (typeof out.row_num === 'string') out.row_num = parseInt(out.row_num, 10);
@@ -63,12 +73,7 @@ export async function POST(req: NextRequest) {
     .insert(enriched, { count: 'exact' });
 
   if (insertErr) {
-    // RLS rechaza con 42501 si el usuario no es admin
-    const isRls = insertErr.code === '42501' || (insertErr.message ?? '').includes('row-level security');
-    return NextResponse.json(
-      { error: isRls ? 'forbidden — admin only' : insertErr.message },
-      { status: isRls ? 403 : 500 },
-    );
+    return NextResponse.json({ error: insertErr.message }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, batch_id: body.batch_id, inserted: count ?? enriched.length });
