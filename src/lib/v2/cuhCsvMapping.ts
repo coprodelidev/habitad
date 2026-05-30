@@ -11,6 +11,7 @@ export const DATA_FIRST_ROW = 5;
 // Solo declaramos las columnas que vamos a usar (las demás van a raw_row).
 export const COLUMN_MAP: Array<[number, string]> = [
   [0, 'codigo_sap_ubicacion'],
+  [1, 'tipo_inmueble'],
   [2, 'etapa_codigo'],
   [3, 'cuh'],
   [4, 'declaratoria_tipo'],
