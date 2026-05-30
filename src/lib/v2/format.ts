@@ -6,11 +6,19 @@ export function formatMoney(amount: number | null | undefined, moneda: Moneda = 
   return `${symbol} ${amount.toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+// Para fechas ISO (YYYY-MM-DD…) extraemos los componentes directo del string
+// para evitar el bug de timezone: new Date('2026-05-29').toLocaleDateString('es-PE')
+// devuelve '28/05/2026' porque JS interpreta el string como UTC medianoche y luego
+// convierte a UTC-5 (Lima), restando un día.
 export function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '—';
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+    const [y, m, d] = value.slice(0, 10).split('-');
+    return `${d}/${m}/${y}`;
+  }
   const d = typeof value === 'string' ? new Date(value) : value;
   if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return d.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Lima' });
 }
 
 export function formatDateTime(value: string | Date | null | undefined): string {
@@ -23,6 +31,7 @@ export function formatDateTime(value: string | Date | null | undefined): string 
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'America/Lima',
   });
 }
 

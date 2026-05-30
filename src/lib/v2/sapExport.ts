@@ -145,8 +145,14 @@ function splitNameParts(nombres: Nullable<string>, apellidos: Nullable<string>) 
   };
 }
 
+// Para evitar el bug de timezone (ver lib/v2/format.ts), si recibimos un
+// string ISO extraemos los componentes directo. Solo cuando recibimos un
+// Date object real usamos getFullYear/getMonth/getDate (que son local).
 function formatYmd(v: Nullable<string | Date>): string {
   if (!v) return '';
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) {
+    return v.slice(0, 10).replace(/-/g, '');
+  }
   const d = v instanceof Date ? v : new Date(v);
   if (Number.isNaN(d.getTime())) return '';
   const yyyy = d.getFullYear();
@@ -157,6 +163,11 @@ function formatYmd(v: Nullable<string | Date>): string {
 
 function addYears(v: Nullable<string>, years: number): string {
   if (!v) return '';
+  // Parsear sin timezone: tomar la fecha y sumar años al componente year.
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) {
+    const [y, m, d] = v.slice(0, 10).split('-');
+    return `${String(parseInt(y, 10) + years)}${m}${d}`;
+  }
   const d = new Date(v);
   if (Number.isNaN(d.getTime())) return '';
   d.setFullYear(d.getFullYear() + years);
