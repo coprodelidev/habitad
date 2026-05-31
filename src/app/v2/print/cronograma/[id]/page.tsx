@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { loadVentaBundle, type VentaBundle } from '../../_utils/loadVenta';
 import { formatDate, formatMoney } from '@/lib/v2/format';
+import { usePlantilla, PrintHeader, PrintFooter } from '@/components/v2/PrintTemplate';
 
 export default function CronogramaPage() {
   const { id } = useParams<{ id: string }>();
   const [b, setB] = useState<VentaBundle | null>(null);
+  const plantilla = usePlantilla('plantilla_contrato');
 
   useEffect(() => {
     if (id) loadVentaBundle(id).then(setB);
@@ -20,8 +22,8 @@ export default function CronogramaPage() {
 
   return (
     <div className="space-y-5 text-sm">
-      <header className="border-b-2 border-slate-900 pb-3">
-        <div className="text-xs uppercase text-slate-500">COPRODELI</div>
+      <PrintHeader plantilla={plantilla} />
+      <div className="border-b-2 border-slate-900 pb-3">
         <h1 className="text-2xl font-bold">Cronograma de Pagos</h1>
         <div className="mt-1 text-xs text-slate-600">
           Cliente: {cliente.nombres} {cliente.apellidos} · DNI {cliente.dni}
@@ -29,7 +31,7 @@ export default function CronogramaPage() {
         <div className="text-xs text-slate-600">
           Inmueble: CUH {propiedad.cuh} · Mz {propiedad.manzana ?? '—'} / Lt {propiedad.lote ?? '—'}
         </div>
-      </header>
+      </div>
 
       <table className="min-w-full border border-slate-300 text-sm">
         <thead className="bg-slate-100">
@@ -63,6 +65,8 @@ export default function CronogramaPage() {
         Los pagos mayores al monto de la cuota del mes se registran como saldo a favor y se aplican
         automáticamente a la siguiente cuota vencida.
       </p>
+
+      <PrintFooter plantilla={plantilla} />
     </div>
   );
 }

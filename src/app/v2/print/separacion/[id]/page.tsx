@@ -5,10 +5,12 @@ import { useParams } from 'next/navigation';
 import { loadVentaBundle, type VentaBundle } from '../../_utils/loadVenta';
 import type { Cliente, Pago } from '@/lib/v2/types';
 import { formatDate, formatDateTime, formatMoney } from '@/lib/v2/format';
+import { usePlantilla, PrintHeader, PrintFooter, PrintClausulas } from '@/components/v2/PrintTemplate';
 
 export default function HojaSeparacionPage() {
   const { id } = useParams<{ id: string }>();
   const [b, setB] = useState<VentaBundle | null>(null);
+  const plantilla = usePlantilla('plantilla_separacion');
 
   useEffect(() => {
     if (id) loadVentaBundle(id).then(setB);
@@ -23,18 +25,14 @@ export default function HojaSeparacionPage() {
 
   return (
     <div className="space-y-6 text-sm leading-relaxed">
-      <header className="border-b-2 border-slate-900 pb-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="text-xs uppercase text-slate-500">COPRODELI</div>
-            <h1 className="text-2xl font-bold">Hoja de Separacion</h1>
-          </div>
-          <div className="text-right text-xs text-slate-600">
-            <div>Codigo: <span className="font-mono">{propiedad.cuh}</span></div>
-            <div>Fecha emision: {formatDate(new Date())}</div>
-          </div>
+      <PrintHeader plantilla={plantilla} />
+      <div className="flex items-start justify-between border-b-2 border-slate-900 pb-3">
+        <h1 className="text-2xl font-bold">Hoja de Separación</h1>
+        <div className="text-right text-xs text-slate-600">
+          <div>Código: <span className="font-mono">{propiedad.cuh}</span></div>
+          <div>Fecha emisión: {formatDate(new Date())}</div>
         </div>
-      </header>
+      </div>
 
       <section>
         <h2 className="mb-2 text-sm font-semibold uppercase text-slate-700">Datos del cliente</h2>
@@ -120,9 +118,12 @@ export default function HojaSeparacionPage() {
           Cliente<br />{cliente.nombres} {cliente.apellidos}<br />DNI: {cliente.dni}
         </div>
         <div className="border-t border-slate-400 pt-2 text-center text-xs">
-          COPRODELI<br />Promotor/Representante
+          {plantilla.cabecera ?? 'COPRODELI'}<br />Promotor/Representante
         </div>
       </section>
+
+      <PrintClausulas plantilla={plantilla} />
+      <PrintFooter plantilla={plantilla} />
     </div>
   );
 }

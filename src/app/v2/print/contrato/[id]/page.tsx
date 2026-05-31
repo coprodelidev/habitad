@@ -4,10 +4,12 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { loadVentaBundle, type VentaBundle } from '../../_utils/loadVenta';
 import { formatDate, formatMoney } from '@/lib/v2/format';
+import { usePlantilla, PrintHeader, PrintFooter, PrintClausulas } from '@/components/v2/PrintTemplate';
 
 export default function ContratoPage() {
   const { id } = useParams<{ id: string }>();
   const [b, setB] = useState<VentaBundle | null>(null);
+  const plantilla = usePlantilla('plantilla_contrato');
 
   useEffect(() => {
     if (id) loadVentaBundle(id).then(setB);
@@ -27,13 +29,13 @@ export default function ContratoPage() {
 
   return (
     <div className="space-y-4 text-sm leading-relaxed">
-      <header className="border-b-2 border-slate-900 pb-3 text-center">
-        <div className="text-xs uppercase text-slate-500">COPRODELI</div>
+      <PrintHeader plantilla={plantilla} />
+      <div className="border-b-2 border-slate-900 pb-3 text-center">
         <h1 className="text-2xl font-bold uppercase">Contrato de Compraventa</h1>
         <div className="mt-1 text-xs text-slate-600">
           Emitido el {formatDate(venta.fecha_contrato ?? new Date())}
         </div>
-      </header>
+      </div>
 
       <p className="text-justify">
         Conste por el presente documento el Contrato de Compraventa que celebran de una parte COPRODELI,
@@ -87,9 +89,12 @@ export default function ContratoPage() {
           EL COMPRADOR<br />{cliente.nombres} {cliente.apellidos}<br />DNI: {cliente.dni}
         </div>
         <div className="border-t border-slate-400 pt-2 text-center text-xs">
-          EL VENDEDOR<br />COPRODELI
+          EL VENDEDOR<br />{plantilla.cabecera ?? 'COPRODELI'}
         </div>
       </section>
+
+      <PrintClausulas plantilla={plantilla} />
+      <PrintFooter plantilla={plantilla} />
     </div>
   );
 }
