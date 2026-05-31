@@ -139,17 +139,16 @@ export default function ParametrosPage() {
         </Card>
 
         <Card
-          title="Cabecera del contrato"
-          desc="Nombre de la empresa que aparece en la plantilla del contrato y de la hoja de separación."
-          saved={ok === 'plantilla_contrato'}
-          saving={saving === 'plantilla_contrato'}
+          title="Plantilla de contratos y hojas (cabecera, pie, logo, cláusulas)"
+          desc="Render dinámico que se aplica a hoja de separación, contrato y cronograma. Las cláusulas son texto libre; van al final de cada documento."
+          saved={ok === 'plantilla_contrato' || ok === 'plantilla_separacion'}
+          saving={saving === 'plantilla_contrato' || saving === 'plantilla_separacion'}
         >
-          <TextField
-            value={String((items.plantilla_contrato as any)?.cabecera ?? 'COPRODELI')}
-            onSave={(v) => {
-              const current = (items.plantilla_contrato as any) ?? { version: 1 };
-              save('plantilla_contrato', { ...current, cabecera: v });
-              save('plantilla_separacion', { ...((items.plantilla_separacion as any) ?? { version: 1 }), cabecera: v });
+          <PlantillaEditor
+            plantilla={(items.plantilla_contrato as any) ?? { version: 1 }}
+            onSave={(p) => {
+              save('plantilla_contrato', p);
+              save('plantilla_separacion', { ...((items.plantilla_separacion as any) ?? { version: 1 }), cabecera: p.cabecera, pie: p.pie, logo_url: p.logo_url });
             }}
           />
         </Card>
@@ -430,6 +429,135 @@ function TagsField({ value, onSave }: { value: string[]; onSave: (arr: string[])
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+interface PlantillaConfig {
+  version?: number;
+  cabecera?: string;
+  pie?: string;
+  logo_url?: string;
+  clausulas?: string[];
+}
+
+function PlantillaEditor({ plantilla, onSave }: { plantilla: PlantillaConfig; onSave: (p: PlantillaConfig) => void }) {
+  const [cabecera, setCabecera] = useState(plantilla.cabecera ?? 'COPRODELI');
+  const [pie, setPie] = useState(plantilla.pie ?? '');
+  const [logoUrl, setLogoUrl] = useState(plantilla.logo_url ?? '');
+  const [clausulas, setClausulas] = useState<string[]>(plantilla.clausulas ?? []);
+  const [nuevaClausula, setNuevaClausula] = useState('');
+
+  useEffect(() => {
+    setCabecera(plantilla.cabecera ?? 'COPRODELI');
+    setPie(plantilla.pie ?? '');
+    setLogoUrl(plantilla.logo_url ?? '');
+    setClausulas(plantilla.clausulas ?? []);
+  }, [plantilla]);
+
+  const changed =
+    cabecera !== (plantilla.cabecera ?? 'COPRODELI') ||
+    pie !== (plantilla.pie ?? '') ||
+    logoUrl !== (plantilla.logo_url ?? '') ||
+    JSON.stringify(clausulas) !== JSON.stringify(plantilla.clausulas ?? []);
+
+  const addClausula = () => {
+    const t = nuevaClausula.trim();
+    if (!t) return;
+    setClausulas([...clausulas, t]);
+    setNuevaClausula('');
+  };
+
+  const removeClausula = (i: number) => setClausulas(clausulas.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="mb-1 block text-xs font-medium text-slate-600">Cabecera (nombre que aparece arriba)</label>
+        <input
+          type="text"
+          value={cabecera}
+          onChange={(e) => setCabecera(e.target.value)}
+          className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-medium text-slate-600">URL del logo (opcional, se renderiza en la cabecera)</label>
+        <input
+          type="text"
+          value={logoUrl}
+          onChange={(e) => setLogoUrl(e.target.value)}
+          placeholder="https://… o ruta del bucket de Supabase"
+          className="h-10 w-full rounded-md border border-slate-300 px-3 text-sm"
+        />
+        {logoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrl} alt="preview" className="mt-2 h-12 w-auto rounded border border-slate-200 bg-white p-1" />
+        )}
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-medium text-slate-600">Pie de página (texto al final de cada documento)</label>
+        <textarea
+          value={pie}
+          onChange={(e) => setPie(e.target.value)}
+          rows={2}
+          placeholder="Ej: Coprodeli — Av. Guardia Chalaca 1371, Callao · cobranza@coprodeli.org · WhatsApp 989 172 061"
+          className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+        />
+      </div>
+
+      <div>
+        <label className="mb-1 block text-xs font-medium text-slate-600">Cláusulas adicionales (se imprimen al final del precontrato)</label>
+        <div className="space-y-2">
+          {clausulas.map((c, i) => (
+            <div key={i} className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 p-2">
+              <span className="mt-1 text-xs font-medium text-slate-500">{i + 1}.</span>
+              <textarea
+                value={c}
+                onChange={(e) => {
+                  const next = [...clausulas];
+                  next[i] = e.target.value;
+                  setClausulas(next);
+                }}
+                rows={2}
+                className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm"
+              />
+              <button onClick={() => removeClausula(i)} className="mt-1 text-red-500 hover:text-red-700">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+          {clausulas.length === 0 && <p className="text-xs italic text-slate-400">Sin cláusulas adicionales.</p>}
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            type="text"
+            value={nuevaClausula}
+            onChange={(e) => setNuevaClausula(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addClausula())}
+            placeholder="Nueva cláusula"
+            className="h-9 flex-1 rounded-md border border-slate-300 px-3 text-sm"
+          />
+          <button
+            onClick={addClausula}
+            disabled={!nuevaClausula.trim()}
+            className="inline-flex h-9 items-center gap-1 rounded-md border border-slate-300 bg-white px-3 text-sm hover:bg-slate-50 disabled:opacity-50"
+          >
+            <Plus className="h-4 w-4" /> Añadir
+          </button>
+        </div>
+      </div>
+
+      {changed && (
+        <button
+          onClick={() => onSave({ version: 1, cabecera, pie, logo_url: logoUrl, clausulas })}
+          className="rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-500"
+        >
+          Guardar plantilla
+        </button>
+      )}
     </div>
   );
 }
