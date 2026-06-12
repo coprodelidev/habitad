@@ -142,7 +142,7 @@ export default function PlanoPage() {
                 title={`${p.cuh} — ${p.manzana ?? ''}/${p.lote ?? ''}${canBlock ? ' (click derecho: bloquear/desbloquear)' : ''}`}
               >
                 <span className="text-xs opacity-90">{p.manzana ?? '—'}/{p.lote ?? '—'}</span>
-                <span className="mt-0.5 font-mono text-xs">{p.cuh}</span>
+                <span className="mt-0.5 font-mono text-xs">Mz/Lt</span>
                 <span className="mt-1 text-[11px] font-semibold">{formatMoney(p.precio_venta ?? p.precio_lista, p.moneda)}</span>
                 {venta && p.estado_fisico === 'separado' && (
                   <span className="mt-0.5 text-[10px] font-bold">⏱ {shortDuration(venta.fecha_vencimiento_separacion)}</span>
