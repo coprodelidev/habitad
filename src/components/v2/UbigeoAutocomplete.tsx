@@ -11,6 +11,34 @@ interface Props {
   placeholder?: string;
 }
 
+// Normaliza para comparar sin tildes ni mayúsculas (ej. "áncash" == "ancash").
+function norm(s: string): string {
+  return (s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+}
+
+// Ordena los resultados por relevancia: coincidencia exacta de distrito primero,
+// luego prefijo de distrito, provincia, departamento, y por último "contiene".
+// Así, al teclear "Ica" sale Ica/Ica/Ica arriba en vez de Tarica, Ticapampa, etc.
+function rankUbigeos(rows: Ubigeo[], q: string): Ubigeo[] {
+  const nq = norm(q);
+  const score = (u: Ubigeo): number => {
+    const d = norm(u.distrito), p = norm(u.provincia), dep = norm(u.departamento);
+    if (d === nq) return 0;
+    if (d.startsWith(nq)) return 1;
+    if (p === nq) return 2;
+    if (dep === nq) return 3;
+    if (p.startsWith(nq)) return 4;
+    if (dep.startsWith(nq)) return 5;
+    if (d.includes(nq)) return 6;
+    return 7;
+  };
+  return [...rows].sort((a, b) => {
+    const sa = score(a), sb = score(b);
+    if (sa !== sb) return sa - sb;
+    return norm(a.distrito).localeCompare(norm(b.distrito));
+  });
+}
+
 export function UbigeoAutocomplete({ value, onChange, placeholder }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Ubigeo[]>([]);
@@ -44,17 +72,21 @@ export function UbigeoAutocomplete({ value, onChange, placeholder }: Props) {
     const q = query.trim();
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
-      let queryBuilder = supabaseV2.from('ubigeos').select('*').limit(40);
+      let queryBuilder = supabaseV2.from('ubigeos').select('*');
       if (q) {
-        // Buscar en 3 campos (distrito, provincia, departamento) + código exacto
+        // Buscar en 3 campos (distrito, provincia, departamento) + código exacto.
+        // Límite alto + ranking client-side: si solo trajéramos 40 ordenados por
+        // código, "Ica" (11xxxx) quedaba fuera por culpa de los muchos distritos
+        // que CONTIENEN "ica" en departamentos previos (Tarica, Ticapampa, etc.).
         queryBuilder = queryBuilder.or(
           `distrito.ilike.*${q}*,provincia.ilike.*${q}*,departamento.ilike.*${q}*,codigo.ilike.${q}*`
-        );
+        ).limit(300);
       } else {
-        queryBuilder = queryBuilder.order('departamento').order('provincia').order('distrito');
+        queryBuilder = queryBuilder.order('departamento').order('provincia').order('distrito').limit(40);
       }
       const res: any = await queryBuilder;
-      setResults((res?.data ?? []) as Ubigeo[]);
+      const rows = (res?.data ?? []) as Ubigeo[];
+      setResults(q ? rankUbigeos(rows, q).slice(0, 40) : rows);
       setLoading(false);
     }, 180);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
