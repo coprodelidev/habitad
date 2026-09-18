@@ -162,7 +162,7 @@ export default function PlanoPage() {
             : 'No hay unidades en ese estado con los filtros actuales.'}
         </div>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(110px,1fr))] gap-3">
+        <div className="grid grid-cols-[repeat(auto-fill,100px)] gap-2">
           {filtered.map((p) => {
             const color =
               p.estado_fisico === 'libre' ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
@@ -175,11 +175,11 @@ export default function PlanoPage() {
                 key={p.id}
                 onClick={() => handleClick(p)}
                 onContextMenu={(e) => handleRightClick(e, p)}
-                className={`relative flex min-h-[96px] flex-col items-center justify-center rounded-lg p-3 font-medium shadow transition ${color}`}
+                className={`relative flex min-h-[68px] min-w-0 flex-col items-center justify-center rounded-md px-1.5 py-2 font-medium shadow-sm transition ${color}`}
                 title={`${p.cuh} — ${p.manzana ?? ''}/${p.lote ?? ''}${canBlock ? ' (click derecho: bloquear/desbloquear)' : ''}`}
               >
-                <span className="text-xs opacity-90">{p.manzana ?? '—'}/{p.lote ?? '—'}</span>
-                <span className="mt-1 text-[11px] font-semibold">{formatMoney(p.precio_venta ?? p.precio_lista, p.moneda)}</span>
+                <span className="max-w-full break-words text-center text-[11px] leading-tight opacity-90">Mz {p.manzana ?? '—'}/Lt {p.lote ?? '—'}</span>
+                <span className="mt-1 max-w-full break-words text-center text-[11px] font-semibold leading-tight">{formatMoney(p.precio_venta ?? p.precio_lista, p.moneda)}</span>
                 {venta && p.estado_fisico === 'separado' && (
                   <span className="mt-0.5 text-[10px] font-bold">⏱ {shortDuration(venta.fecha_vencimiento_separacion)}</span>
                 )}
