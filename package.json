@@ -9,7 +9,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:retiros": "node --test tests/retiros.test.mjs"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",
@@ -60,6 +61,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.3.10",
     "@types/node": "^20",
     "@types/papaparse": "^5.3.16",
     "@types/react": "^18",

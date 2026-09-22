@@ -91,11 +91,13 @@ export default function PlanoPage() {
     if (p.estado_fisico === 'libre') {
       const motivo = window.prompt('Motivo del bloqueo (queda en auditoría):') ?? '';
       if (!motivo) return;
-      await supabaseV2.from('propiedades').update({ estado_fisico: 'bloqueado', bloqueada_motivo: motivo }).eq('id', p.id);
+      const { error: updateError } = await supabaseV2.from('propiedades').update({ estado_fisico: 'bloqueado', bloqueada_motivo: motivo }).eq('id', p.id);
+      if (updateError) { setError(updateError.message); return; }
       load();
     } else if (p.estado_fisico === 'bloqueado') {
       if (!confirm('¿Desbloquear esta unidad?')) return;
-      await supabaseV2.from('propiedades').update({ estado_fisico: 'libre', bloqueada_motivo: null }).eq('id', p.id);
+      const { error: updateError } = await supabaseV2.from('propiedades').update({ estado_fisico: 'libre', bloqueada_motivo: null }).eq('id', p.id);
+      if (updateError) { setError(updateError.message); return; }
       load();
     }
   };

@@ -17,6 +17,7 @@ import {
   Bell,
   Percent,
   Users,
+  UserMinus,
 } from 'lucide-react';
 import { isAdmin, isStaff, isAuditor, isCliente, type RoleCode } from '@/lib/v2/permissions';
 import { supabasePublic, supabaseV2 } from '@/lib/v2/supabaseV2';
@@ -36,6 +37,7 @@ const NAV_BASE: NavItem[] = [
   { href: '/v2/plano', label: 'Plano', icon: Map, visible: (r) => isStaff(r) || isAuditor(r) },
   { href: '/v2/propiedades', label: 'Propiedades', icon: Building2, visible: (r) => isStaff(r) || isAuditor(r) },
   { href: '/v2/ventas', label: 'Ventas', icon: ClipboardList, visible: (r) => isStaff(r) || isAuditor(r) },
+  { href: '/v2/retirados', label: 'Retirados', icon: UserMinus, visible: (r) => isStaff(r) || isAuditor(r) },
   { href: '/v2/clientes', label: 'Clientes', icon: Users, visible: (r) => isStaff(r) },
   { href: '/v2/pagos', label: 'Pagos', icon: CreditCard, visible: (r) => isStaff(r) || isAuditor(r) },
   { href: '/v2/reportes/comisiones', label: 'Comisiones', icon: Percent, visible: (r) => isStaff(r) },
@@ -54,15 +56,19 @@ export function Sidebar({ role, email }: { role: RoleCode | null; email: string 
   useEffect(() => {
     let active = true;
     const load = async () => {
+      const { data: auth } = await supabasePublic.auth.getUser();
+      if (!auth.user || !active) return;
       const { count } = await supabaseV2
         .from('notificaciones')
         .select('id', { count: 'exact', head: true })
-        .eq('leida', false);
+        .eq('leida', false)
+        .eq('usuario_id', auth.user.id);
       if (active) setUnread(count ?? 0);
     };
     load();
     const t = setInterval(load, 30000);
-    return () => { active = false; clearInterval(t); };
+    window.addEventListener('v2-notificaciones-cambiadas', load);
+    return () => { active = false; clearInterval(t); window.removeEventListener('v2-notificaciones-cambiadas', load); };
   }, [pathname]);
 
   const handleLogout = async () => {

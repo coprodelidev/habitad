@@ -7,6 +7,8 @@ import { formatDateTime, formatMoney, timeRemaining } from '@/lib/v2/format';
 import { useEffect, useState } from 'react';
 import { isAdmin } from '@/lib/v2/permissions';
 import { useV2User } from '@/lib/v2/useV2User';
+import { RetiroModal } from '@/components/v2/RetiroModal';
+import { useRouter } from 'next/navigation';
 
 export function UnidadDetalleModal({
   propiedad,
@@ -20,6 +22,9 @@ export function UnidadDetalleModal({
   onChanged: () => void;
 }) {
   const { user } = useV2User();
+  const router = useRouter();
+  const [retirando, setRetirando] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const canAdmin = isAdmin(user?.roleCode);
   const [cliente, setCliente] = useState<{ nombres: string; apellidos: string; dni: string; telefono: string | null; email: string | null } | null>(null);
   const [promotor, setPromotor] = useState<{ first_name: string | null; last_name: string | null; email: string | null } | null>(null);
@@ -40,21 +45,19 @@ export function UnidadDetalleModal({
     }
   }, [venta]);
 
-  const liberar = async () => {
-    if (!venta) return;
-    if (!confirm('¿Liberar esta unidad y cancelar la venta?')) return;
-    await supabaseV2.from('ventas').update({
-      estado: 'cancelada',
-      fecha_cancelacion: new Date().toISOString(),
-      motivo_cancelacion: 'Liberación manual desde plano',
-    }).eq('id', venta.id);
+  const desbloquear = async () => {
+    setActionError(null);
+    const { error } = await supabaseV2.from('propiedades').update({ estado_fisico: 'libre', bloqueada_motivo: null }).eq('id', propiedad.id);
+    if (error) { setActionError(error.message); return; }
     onChanged();
   };
 
-  const desbloquear = async () => {
-    await supabaseV2.from('propiedades').update({ estado_fisico: 'libre', bloqueada_motivo: null }).eq('id', propiedad.id);
-    onChanged();
-  };
+  if (retirando && venta) {
+    return <RetiroModal venta={venta} propiedad={propiedad} onClose={() => setRetirando(false)} onCreated={() => {
+      onChanged();
+      router.push(`/v2/retirados/${venta.id}`);
+    }} />;
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
@@ -67,6 +70,7 @@ export function UnidadDetalleModal({
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">✕</button>
         </div>
         <div className="p-4 text-sm">
+          {actionError && <p role="alert" className="mb-3 rounded bg-red-50 p-3 text-red-700">{actionError}</p>}
           <div className="mb-2 font-mono text-xs text-slate-500">{propiedad.cuh}</div>
           <div className="space-y-0.5">
             <Row k="Mz / Lt" v={`${propiedad.manzana ?? '—'} / ${propiedad.lote ?? '—'}`} />
@@ -139,7 +143,7 @@ export function UnidadDetalleModal({
                   Abrir venta
                 </Link>
                 {canAdmin && (
-                  <button onClick={liberar} className="rounded bg-red-600 px-3 py-1 text-xs text-white hover:bg-red-500">
+                  <button onClick={() => setRetirando(true)} className="rounded bg-red-600 px-3 py-1 text-xs text-white hover:bg-red-500">
                     Liberar unidad
                   </button>
                 )}

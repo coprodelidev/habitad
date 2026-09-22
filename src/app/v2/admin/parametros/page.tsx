@@ -70,7 +70,7 @@ export default function ParametrosPage() {
       <div className="space-y-5">
         <Card
           title="Plazo de separación"
-          desc="Horas que una separación está vigente antes de liberarse automáticamente."
+          desc="Horas de vigencia de una separación. Al vencer se notifica para revisar el retiro; la liberación requiere confirmación."
           saved={ok === 'separacion_horas'}
           saving={saving === 'separacion_horas'}
         >

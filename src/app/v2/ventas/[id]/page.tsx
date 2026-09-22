@@ -16,11 +16,15 @@ import { CuotasTab } from './CuotasTab';
 import { ChecklistTab } from './ChecklistTab';
 import { MiViviendaTab } from './MiViviendaTab';
 import { CorteCancelacionTab } from './CorteCancelacionTab';
+import { RetiroModal } from '@/components/v2/RetiroModal';
+import { useRouter } from 'next/navigation';
 
 type Tab = 'resumen' | 'separacion' | 'inicial' | 'contrato' | 'cuotas' | 'checklist' | 'mivivienda' | 'corte';
 
 export default function VentaDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const [retirando, setRetirando] = useState(false);
   const { user } = useV2User();
   const [venta, setVenta] = useState<Venta | null>(null);
   const [propiedad, setPropiedad] = useState<Propiedad | null>(null);
@@ -110,6 +114,9 @@ export default function VentaDetailPage() {
               </span>
             )}
             <span className="text-sm text-slate-700">{formatMoney(venta.precio_acordado, venta.moneda)}</span>
+            {canAdmin && propiedad && ['separacion', 'inicial', 'cuotas'].includes(venta.estado) && (
+              <button onClick={() => setRetirando(true)} className="rounded bg-red-600 px-3 py-1.5 text-xs text-white hover:bg-red-700">Retirar y liberar ubicación</button>
+            )}
           </div>
         </div>
       </div>
@@ -138,6 +145,7 @@ export default function VentaDetailPage() {
       {tab === 'cuotas' && <CuotasTab venta={venta} cuotas={cuotas} pagos={pagos} canOperate={canOperate} canAdmin={canAdmin} onChange={load} />}
       {tab === 'mivivienda' && <MiViviendaTab venta={venta} canOperate={canOperate} onChange={load} />}
       {tab === 'corte' && <CorteCancelacionTab venta={venta} saldos={saldos} canOperate={canOperate} onChange={load} />}
+      {retirando && propiedad && <RetiroModal venta={venta} propiedad={propiedad} onClose={() => setRetirando(false)} onCreated={() => router.push(`/v2/retirados/${venta.id}`)} />}
     </div>
   );
 }
