@@ -10,7 +10,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test:retiros": "node --test tests/retiros.test.mjs"
+    "test:retiros": "node --test tests/retiros.test.mjs",
+    "test:plano": "node --test tests/plano-catalogo.test.mjs"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",

@@ -6,6 +6,7 @@ import type { ModalidadPago, Moneda, Propiedad, TipoSeparacion } from '@/lib/v2/
 import { formatMoney } from '@/lib/v2/format';
 import { UbigeoAutocomplete } from '@/components/v2/UbigeoAutocomplete';
 import { parseAmountInput } from '@/lib/v2/amount';
+import { crearFormularioSeparacion, datosClienteSeparacion } from '@/lib/v2/separacionForm';
 
 const TIPOS_VIA = ['Avenida', 'Jr.', 'Calle', 'Pasaje'];
 const TIPOS_ZONA = ['Urb.', 'AA.HH.', 'Caserio', 'P.J.', 'Asociacion'];
@@ -28,35 +29,11 @@ export function NuevaSeparacionModal({
   onClose: () => void;
   onCreated: () => void;
 }) {
-  const [form, setForm] = useState({
-    nombres: '',
-    segundo_nombre: '',
-    apellido_paterno: '',
-    apellido_materno: '',
-    dni: '',
-    telefono: '',
-    email: '',
-    moneda: propiedad.moneda as Moneda,
-    tipo_separacion: (propiedad.tipo === 'casa' ? 'casa' : 'terreno_sin_interes') as TipoSeparacion,
-    modalidad_pago: (propiedad.tipo === 'casa' ? 'bono_mivivienda' : 'cuotas_sin_interes') as ModalidadPago,
-    monto_inicial_objetivo: '',
-    tipo_via: '',
-    tipo_zona: '',
-    zona_nombre: '',
-    direccion_mz: propiedad.manzana ? String(propiedad.manzana) : '',
-    direccion_lt: propiedad.lote ? String(propiedad.lote) : '',
-    numero_puerta: '',
-    interior: '',
-    referencia: '',
-    urbanizacion: '',
-    ubigeo_cod: '',
-  });
+  const [form, setForm] = useState(() => crearFormularioSeparacion(propiedad));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const precio = propiedad.precio_venta ?? propiedad.precio_lista;
-  const apellidosCompletos = [form.apellido_paterno, form.apellido_materno].filter(Boolean).join(' ');
-  const nombresCompletos = [form.nombres, form.segundo_nombre].filter(Boolean).join(' ');
   const tiposSeparacion = propiedad.tipo === 'casa' ? TIPOS_SEPARACION_CASA : TIPOS_SEPARACION_TERRENO;
   const referenciaUnidad = getReferenciaUnidad(propiedad);
 
@@ -69,8 +46,8 @@ export function NuevaSeparacionModal({
       if (!form.apellido_paterno.trim()) missing.push('Apellido paterno');
       if (!form.dni.trim()) missing.push('DNI');
       if (!form.email.trim()) missing.push('Correo');
-      if (!form.direccion_mz.trim()) missing.push('Manzana');
-      if (!form.direccion_lt.trim()) missing.push('Lote');
+      if (!form.direccion_mz.trim()) missing.push('Manzana del domicilio del cliente');
+      if (!form.direccion_lt.trim()) missing.push('Lote del domicilio del cliente');
       if (!form.ubigeo_cod.trim()) missing.push('Ubigeo');
       if (missing.length) {
         throw new Error(`Completa los campos obligatorios: ${missing.join(', ')}`);
@@ -86,28 +63,10 @@ export function NuevaSeparacionModal({
       }
 
       let clienteId: string | null = null;
-      const { data: existingId } = await supabaseV2.rpc('buscar_cliente_por_dni', { p_dni: form.dni });
+      const { data: existingId, error: searchError } = await supabaseV2.rpc('buscar_cliente_por_dni', { p_dni: form.dni.trim() });
+      if (searchError) throw searchError;
       const { data: userData } = await supabasePublic.auth.getUser();
-      const clientePayload = {
-        nombres: nombresCompletos,
-        apellidos: apellidosCompletos,
-        dni: form.dni,
-        telefono: form.telefono || null,
-        email: form.email || null,
-        segundo_nombre: form.segundo_nombre || null,
-        apellido_paterno: form.apellido_paterno || null,
-        apellido_materno: form.apellido_materno || null,
-        tipo_via: form.tipo_via || null,
-        tipo_zona: form.tipo_zona || null,
-        zona_nombre: form.zona_nombre || null,
-        direccion_mz: form.direccion_mz || null,
-        direccion_lt: form.direccion_lt || null,
-        numero_puerta: form.numero_puerta || null,
-        interior: form.interior || null,
-        referencia: form.referencia || null,
-        urbanizacion: form.urbanizacion || null,
-        ubigeo_cod: form.ubigeo_cod || null,
-      };
+      const clientePayload = datosClienteSeparacion(form);
       if (existingId) {
         clienteId = existingId as string;
         const upd = await supabaseV2.from('clientes').update(clientePayload).eq('id', clienteId);
@@ -167,14 +126,19 @@ export function NuevaSeparacionModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b px-4 py-2">
-          <h2 className="text-base font-semibold">Nueva separacion</h2>
+          <h2 className="text-base font-semibold">Nueva separación</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">x</button>
         </div>
         <div className="p-4">
           <div className="mb-4 rounded-md bg-slate-50 p-3 text-sm">
+            <h3 className="mb-2 font-semibold text-slate-900">Inmueble que se está separando</h3>
             <div className="font-mono text-xs text-slate-500">{propiedad.cuh}</div>
             <div className="mt-1 text-slate-900">
-              Mz {propiedad.manzana ?? '-'} / Lt {propiedad.lote ?? '-'} · {propiedad.tipo}
+              {propiedad.tipo === 'casa' ? 'Casa' : 'Terreno'} · {propiedad.modelo ?? 'Sin modelo'}
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <Field label="Manzana del inmueble"><input className={`${inp} bg-slate-100`} readOnly value={propiedad.manzana ?? ''} /></Field>
+              <Field label="Lote del inmueble"><input className={`${inp} bg-slate-100`} readOnly value={propiedad.lote ?? ''} /></Field>
             </div>
             <div className="mt-1 font-medium text-slate-900">{formatMoney(precio, form.moneda)}</div>
             {referenciaUnidad && <div className="mt-1 text-xs text-slate-500">{referenciaUnidad}</div>}
@@ -242,7 +206,8 @@ export function NuevaSeparacionModal({
             </div>
           </Section>
 
-          <Section title="Direccion del cliente">
+          <Section title="Dirección actual del cliente">
+            <p className="mb-3 text-xs text-slate-600">Ingrese el domicilio donde vive el cliente. Su manzana y lote son independientes de la casa o terreno que está separando.</p>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Tipo de via">
                 <select className={inp} value={form.tipo_via} onChange={(e) => setForm({ ...form, tipo_via: e.target.value })}>
@@ -262,11 +227,11 @@ export function NuevaSeparacionModal({
               <Field label="Nombre de la zona">
                 <input className={inp} placeholder="Ej: Las Palmeras" value={form.zona_nombre} onChange={(e) => setForm({ ...form, zona_nombre: e.target.value })} />
               </Field>
-              <Field label="Manzana *">
-                <input className={inp} value={form.direccion_mz} onChange={(e) => setForm({ ...form, direccion_mz: e.target.value })} />
+              <Field label="Manzana del cliente *">
+                <input className={inp} placeholder="Manzana de su domicilio actual" value={form.direccion_mz} onChange={(e) => setForm({ ...form, direccion_mz: e.target.value })} />
               </Field>
-              <Field label="Lote *">
-                <input className={inp} value={form.direccion_lt} onChange={(e) => setForm({ ...form, direccion_lt: e.target.value })} />
+              <Field label="Lote del cliente *">
+                <input className={inp} placeholder="Lote de su domicilio actual" value={form.direccion_lt} onChange={(e) => setForm({ ...form, direccion_lt: e.target.value })} />
               </Field>
               <Field label="Interior/Dpto">
                 <input className={inp} value={form.interior} onChange={(e) => setForm({ ...form, interior: e.target.value })} />
@@ -287,8 +252,8 @@ export function NuevaSeparacionModal({
           </Section>
 
           <p className="mt-4 text-xs text-slate-500">
-            Al guardar se crea una separacion valida por <strong>24h</strong>. Si no se registra el pago
-            dentro del plazo, la unidad se libera automaticamente.
+            Al guardar se crea una separación con el plazo configurado. Si vence sin pago,
+            se notificará para revisar el retiro; la liberación requiere confirmación.
           </p>
           {error && <div className="mt-3 rounded bg-red-50 p-2 text-sm text-red-700">{error}</div>}
         </div>
@@ -312,8 +277,7 @@ const inp = 'h-9 w-full rounded-md border border-slate-300 px-3 text-sm focus:bo
 function Field({ label, children, full }: { label: string; children: React.ReactNode; full?: boolean }) {
   return (
     <div className={full ? 'col-span-2' : ''}>
-      <label className="mb-1 block text-xs font-medium text-slate-600">{label}</label>
-      {children}
+      <label className="block text-xs font-medium text-slate-600"><span className="mb-1 block">{label}</span>{children}</label>
     </div>
   );
 }

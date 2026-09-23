@@ -52,7 +52,7 @@ export default function RetiradosPage() {
     setError(null);
     load().then((result) => {
       if (!active) return;
-      if (result.error) setError(result.error.message);
+      if (result.error) setError(result.error.code === 'PGRST205' ? 'Retirados requiere activar sus tablas en Supabase. Falta aplicar la migración 20260918_v2_retirados.sql; después pulse Actualizar.' : result.error.message);
       else { setRows(result.data ?? []); setCount(result.count ?? 0); }
     }).catch(() => { if (active) setError('No se pudieron cargar los retiros. Intente nuevamente.'); })
       .finally(() => { if (active) setLoading(false); });
@@ -93,7 +93,7 @@ export default function RetiradosPage() {
               const pendientes = tareasPendientes(r).length;
               const observaciones = r.observaciones.filter((o) => !o.resuelta_at).length;
               return <tr key={r.id} className="align-top">
-                <td className="px-4 py-3"><p className="font-medium text-slate-900">{r.cliente_snapshot.nombres} {r.cliente_snapshot.apellidos}</p><p className="text-xs text-slate-500">DNI {r.cliente_snapshot.dni}</p><p className="mt-1 text-xs">Mz {r.propiedad_snapshot.manzana ?? '—'}/Lt {r.propiedad_snapshot.lote ?? '—'} · {r.propiedad_snapshot.cuh}</p></td>
+                <td className="px-4 py-3"><p className="font-medium text-slate-900">{r.cliente_snapshot.nombres} {r.cliente_snapshot.apellidos}</p><p className="text-xs text-slate-500">DNI {r.cliente_snapshot.dni}</p><p className="mt-1 text-xs">Mz {r.propiedad_snapshot.manzana ?? '—'} - Lt {r.propiedad_snapshot.lote ?? '—'} · {r.propiedad_snapshot.cuh}</p></td>
                 <td className="whitespace-nowrap px-4 py-3 text-xs">{formatDateTime(r.fecha_retiro)}</td>
                 <td className="px-4 py-3"><p>{motivoRetiroLabel(r.motivo)}</p><p className={`mt-1 text-xs font-semibold ${r.aplica_penalidad ? 'text-amber-700' : 'text-emerald-700'}`}>{r.aplica_penalidad ? formatMoney(r.penalidad_monto, r.penalidad_moneda) : 'Sin penalidad'}</p></td>
                 <td className="px-4 py-3"><span className={`whitespace-nowrap rounded-full px-2 py-1 text-xs ${r.completado_at ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'}`}>{r.completado_at ? 'Completado' : `${6 - pendientes}/6 tareas`}</span>{observaciones > 0 && <p className="mt-2 text-xs text-red-700">{observaciones} observación(es) pendiente(s)</p>}</td>

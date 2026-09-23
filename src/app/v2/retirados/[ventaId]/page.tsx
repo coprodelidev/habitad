@@ -83,7 +83,7 @@ export default function RetiroDetailPage() {
     <div className="space-y-5">
       <Link href="/v2/retirados" className="text-sm text-slate-500 hover:text-slate-800">← Retirados</Link>
       <header className="flex flex-wrap items-start justify-between gap-3">
-        <div><h1 className="text-2xl font-semibold text-slate-900">{retiro.cliente_snapshot.nombres} {retiro.cliente_snapshot.apellidos}</h1><p className="mt-1 text-sm text-slate-500">Expediente de retiro · Mz {retiro.propiedad_snapshot.manzana ?? '—'}/Lt {retiro.propiedad_snapshot.lote ?? '—'} · {retiro.propiedad_snapshot.cuh}</p></div>
+        <div><h1 className="text-2xl font-semibold text-slate-900">{retiro.cliente_snapshot.nombres} {retiro.cliente_snapshot.apellidos}</h1><p className="mt-1 text-sm text-slate-500">Expediente de retiro · Mz {retiro.propiedad_snapshot.manzana ?? '—'} - Lt {retiro.propiedad_snapshot.lote ?? '—'} · {retiro.propiedad_snapshot.cuh}</p></div>
         <div className="flex flex-wrap items-center gap-3"><span className={`rounded-full px-3 py-1 text-xs font-medium ${retiro.completado_at ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>{retiro.completado_at ? 'Trámite completado' : 'Trámite pendiente'}</span><button disabled={busy} onClick={refresh} className="rounded-md border bg-white px-3 py-2 text-sm disabled:opacity-50">Actualizar</button></div>
       </header>
       {error && <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p>}

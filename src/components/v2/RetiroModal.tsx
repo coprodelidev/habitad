@@ -51,7 +51,7 @@ export function RetiroModal({ venta, propiedad, onClose, onCreated }: {
       <DialogContent className="max-h-[90vh] overflow-y-auto" onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Retirar cliente y liberar ubicación</DialogTitle>
-          <DialogDescription>Mz {propiedad.manzana ?? '—'}/Lt {propiedad.lote ?? '—'} · {propiedad.cuh}</DialogDescription>
+          <DialogDescription>Mz {propiedad.manzana ?? '—'} - Lt {propiedad.lote ?? '—'} · {propiedad.cuh}</DialogDescription>
         </DialogHeader>
         <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
           <AlertTriangle className="h-5 w-5 shrink-0" aria-hidden="true" />

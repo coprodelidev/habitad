@@ -73,7 +73,7 @@ export function UnidadDetalleModal({
           {actionError && <p role="alert" className="mb-3 rounded bg-red-50 p-3 text-red-700">{actionError}</p>}
           <div className="mb-2 font-mono text-xs text-slate-500">{propiedad.cuh}</div>
           <div className="space-y-0.5">
-            <Row k="Mz / Lt" v={`${propiedad.manzana ?? '—'} / ${propiedad.lote ?? '—'}`} />
+            <Row k="Mz - Lt" v={`${propiedad.manzana ?? '—'} - ${propiedad.lote ?? '—'}`} />
             <Row k="Tipo" v={propiedad.tipo} />
             <Row k="Modelo" v={propiedad.modelo ?? '—'} />
             <Row k="Precio" v={formatMoney(propiedad.precio_venta ?? propiedad.precio_lista, propiedad.moneda)} />
