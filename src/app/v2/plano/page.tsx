@@ -37,7 +37,6 @@ export default function PlanoPage() {
   const [estadoFiltro, setEstadoFiltro] = useState<'all' | EstadoPlano>('all');
   const [modeloFiltro, setModeloFiltro] = useState('all');
   const [busqueda, setBusqueda] = useState('');
-  const [verSinVincular, setVerSinVincular] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Propiedad | null>(null);
@@ -60,7 +59,7 @@ export default function PlanoPage() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const { unidades, sinVincular } = useMemo(() => construirPlano(props, etapas), [props, etapas]);
+  const { unidades } = useMemo(() => construirPlano(props, etapas), [props, etapas]);
   const etapasCatalogo = useMemo(() => [...new Set(unidades.map((u) => u.etapa))], [unidades]);
   const base = useMemo(() => unidades.filter((u) => {
     if (activeEtapa !== 'all' && u.etapa !== activeEtapa) return false;
@@ -136,7 +135,6 @@ export default function PlanoPage() {
           {venta && u.estado === 'separado' && <span className="mt-0.5 text-[10px] font-bold">⏱ {shortDuration(venta.fecha_vencimiento_separacion)}</span>}
         </button>;
       })}</div></section>)}</div>}
-      {!loading && !error && sinVincular.length > 0 && <section className="rounded-lg border border-amber-200 bg-amber-50 p-3"><button onClick={() => setVerSinVincular((v) => !v)} aria-expanded={verSinVincular} className="text-sm font-medium text-amber-950">{verSinVincular ? 'Ocultar' : 'Ver'} {sinVincular.length} fichas sin correspondencia única con el Excel</button><p className="mt-1 text-xs text-amber-900">Se conservan sus datos e historial. Revise sus códigos de ubicación o posibles duplicados.</p>{verSinVincular && <div className="mt-3 flex flex-wrap gap-2">{sinVincular.map((p) => <button key={p.id} onClick={() => setSelected(p)} className="rounded border border-amber-300 bg-white px-3 py-2 text-xs">{p.cuh} · Mz {p.manzana ?? '—'} - Lt {p.lote ?? '—'}</button>)}</div>}</section>}
       {selected && <UnidadDetalleModal propiedad={selected} venta={ventasActivas[selected.id] ?? null} onClose={() => setSelected(null)} onChanged={() => { setSelected(null); load(); }} />}
       {creatingSep && <NuevaSeparacionModal propiedad={creatingSep} onClose={() => setCreatingSep(null)} onCreated={() => { setCreatingSep(null); load(); }} />}
     </div>
