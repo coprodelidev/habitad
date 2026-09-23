@@ -156,3 +156,13 @@ test('las 3804 ubicaciones toman etapa y coordenadas del Excel conservando estad
   assert.equal(u.estado,estados[i%3]);assert.equal(u.propiedad.precio_venta,12000);
  });
 });
+
+test('el plano excluye manzanas y lotes vacios o cero sin modificar registros', () => {
+ const invalidas=[['','1'],['0','0'],['0','1'],['0','2'],['1','0'],['1','']].map(([manzana,lote],i)=>propiedad({id:'invalida'+i,ubicacion:null,manzana,lote}));
+ const valida=propiedad({id:'valida',ubicacion:'SF-1_3',manzana:'0',lote:'0'});
+ const original=JSON.stringify(invalidas);
+ const unidades=sandbox.exports.construirPlanoOperativo([...invalidas,valida],[]);
+ assert.equal(unidades.length,1);assert.equal(unidades[0].propiedad.id,'valida');
+ assert.equal(unidades[0].manzana,'1');assert.equal(unidades[0].lote,'3');
+ assert.equal(JSON.stringify(invalidas),original);
+});

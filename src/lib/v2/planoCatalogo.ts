@@ -108,7 +108,9 @@ export function construirPlanoOperativo(propiedades: Propiedad[], etapas: Etapa[
       return [{ codigo, etapa, etapaNombre: 'Etapa ' + etapa, manzana, lote, modelo,
         tipo, tipoOriginal, estado, propiedad }];
     }
-    // Una ficha sin coincidencia o con codigo repetido conserva su identidad y operacion.
+    // No dibujar coordenadas vacias o cero como ubicaciones reales.
+    if (!/^[1-9][0-9]*$/.test(original.manzana?.trim() ?? '')
+      || !/^[1-9][0-9]*$/.test(original.lote?.trim() ?? '')) return [];
     const etapa = porEtapa.get(original.etapa_id ?? '');
     return [{ codigo: codigoUbicacionSF(original) ?? original.cuh,
       etapa: etapa && Number(etapa.codigo) >= 1 && Number(etapa.codigo) <= 21 ? etapa.codigo : '', etapaNombre: etapa && Number(etapa.codigo) >= 1 && Number(etapa.codigo) <= 21 ? etapa.nombre : '',
