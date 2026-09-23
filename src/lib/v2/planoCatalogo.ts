@@ -80,3 +80,32 @@ export async function cargarTodasLasFilas<T>(
     if (result.data.length < pageSize) return rows;
   }
 }
+
+export type EstadoOperativo = 'libre' | 'separado' | 'ocupado';
+export type UnidadOperativa = Omit<UnidadPlano, 'estado' | 'propiedad'> & {
+  estado: EstadoOperativo;
+  propiedad: Propiedad;
+};
+
+// El inventario y la disponibilidad provienen del sistema; el Excel solo corrige datos descriptivos.
+export function construirPlanoOperativo(propiedades: Propiedad[], etapas: Etapa[]): UnidadOperativa[] {
+  const catalogo = construirPlano(propiedades, etapas);
+  const corregidas = new Map(catalogo.unidades.flatMap((u) => u.propiedad ? [[u.propiedad.id, u] as const] : []));
+  const porEtapa = new Map(etapas.map((e) => [e.id, e]));
+  return propiedades.flatMap((original): UnidadOperativa[] => {
+    const estado = original.estado_fisico;
+    if (estado !== 'libre' && estado !== 'separado' && estado !== 'ocupado') return [];
+    const corregida = corregidas.get(original.id);
+    if (corregida) return [{ ...corregida, estado, propiedad: corregida.propiedad! }];
+    // Una ficha sin coincidencia o con codigo repetido conserva su identidad y operacion.
+    const etapa = porEtapa.get(original.etapa_id ?? '');
+    return [{ codigo: codigoUbicacionSF(original) ?? original.cuh,
+      etapa: etapa?.codigo ?? '', etapaNombre: etapa?.nombre ?? '',
+      manzana: original.manzana ?? '', lote: original.lote ?? '',
+      modelo: original.modelo ?? '', tipo: original.tipo, tipoOriginal: original.tipo,
+      estado, propiedad: original }];
+  }).sort((a, b) => a.etapa.localeCompare(b.etapa, undefined, { numeric: true })
+    || a.manzana.localeCompare(b.manzana, undefined, { numeric: true })
+    || a.lote.localeCompare(b.lote, undefined, { numeric: true })
+    || a.propiedad.id.localeCompare(b.propiedad.id));
+}

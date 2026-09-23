@@ -102,3 +102,30 @@ test('domicilio del cliente independiente del inmueble reservado', async () => {
     assert.equal(cliente.nombres,'Ana'); assert.equal(cliente.apellidos,'Perez');
   }
 });
+
+test('plano operativo conserva todas las propiedades libres, separadas y ocupadas sin crear cuadros del Excel', () => {
+  const originales = [
+    propiedad({id:'libre',estado_fisico:'libre',ubicacion:'SF-1_3'}),
+    propiedad({id:'separada',estado_fisico:'separado',ubicacion:'SF-1_4'}),
+    propiedad({id:'ocupada',estado_fisico:'ocupado',ubicacion:'SF-1_5'}),
+    propiedad({id:'sin-coincidencia',estado_fisico:'ocupado',ubicacion:'SF-999_999'}),
+    propiedad({id:'duplicada-a',estado_fisico:'libre',ubicacion:'SF-1_6'}),
+    propiedad({id:'duplicada-b',estado_fisico:'separado',ubicacion:'SF-1_6'}),
+    propiedad({id:'bloqueada',estado_fisico:'bloqueado',ubicacion:'SF-1_7'}),
+  ];
+  const antes=JSON.stringify(originales);
+  const unidades=sandbox.exports.construirPlanoOperativo(originales,[{id:'etapa1',codigo:'1',nombre:'Etapa 1'}]);
+  assert.equal(unidades.length,6);
+  assert.equal(new Set(unidades.map(u=>u.propiedad.id)).size,6);
+  for(const original of originales.filter(p=>p.estado_fisico!=='bloqueado')) {
+    const unidad=unidades.find(u=>u.propiedad.id===original.id);
+    assert.ok(unidad);
+    assert.equal(unidad.estado,original.estado_fisico);
+    for(const key of ['id','cuh','precio_lista','precio_venta','moneda','estado_fisico','estado_comercial']) assert.equal(unidad.propiedad[key],original[key]);
+  }
+  for(const estado of ['libre','separado','ocupado']) assert.equal(unidades.filter(u=>u.estado===estado).length,2);
+  const corregida=unidades.find(u=>u.propiedad.id==='libre');
+  assert.equal(corregida.manzana,'1'); assert.equal(corregida.lote,'3'); assert.equal(corregida.tipo,'casa');
+  assert.equal(JSON.stringify(originales),antes);
+  assert.equal(sandbox.exports.construirPlanoOperativo([],[]).length,0);
+});
