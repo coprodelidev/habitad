@@ -46,7 +46,7 @@ export default function PlanoPage() {
   useEffect(() => { load(); }, [load]);
 
   const unidades = useMemo(() => construirPlanoOperativo(props, etapas), [props, etapas]);
-  const etapasCatalogo = useMemo(() => [...new Set(unidades.map((u) => u.etapa))], [unidades]);
+  const etapasCatalogo = useMemo(() => [...new Set(unidades.map((u) => u.etapa).filter(Boolean))], [unidades]);
   const base = useMemo(() => unidades.filter((u) => {
     if (activeEtapa !== 'all' && u.etapa !== activeEtapa) return false;
     if (tipoFiltro !== 'all' && u.tipo !== tipoFiltro) return false;

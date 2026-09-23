@@ -89,18 +89,29 @@ export type UnidadOperativa = Omit<UnidadPlano, 'estado' | 'propiedad'> & {
 
 // El inventario y la disponibilidad provienen del sistema; el Excel solo corrige datos descriptivos.
 export function construirPlanoOperativo(propiedades: Propiedad[], etapas: Etapa[]): UnidadOperativa[] {
-  const catalogo = construirPlano(propiedades, etapas);
-  const corregidas = new Map(catalogo.unidades.flatMap((u) => u.propiedad ? [[u.propiedad.id, u] as const] : []));
+  const referencias = new Map(ARTICULOS_SF.map((fila) => [fila[0], fila]));
+  const etapasPorCodigo = new Map(etapas.map((e) => [e.codigo, e]));
   const porEtapa = new Map(etapas.map((e) => [e.id, e]));
   return propiedades.flatMap((original): UnidadOperativa[] => {
     const estado = original.estado_fisico;
     if (estado !== 'libre' && estado !== 'separado' && estado !== 'ocupado') return [];
-    const corregida = corregidas.get(original.id);
-    if (corregida) return [{ ...corregida, estado, propiedad: corregida.propiedad! }];
+    const codigo = codigoUbicacionSF(original);
+    const referencia = codigo ? referencias.get(codigo) : undefined;
+    if (referencia) {
+      const [codigo, numeroEtapa, modeloOriginal, tipoOriginal] = referencia;
+      const [, manzana, lote] = codigo.match(/^SF-(\d+)_(\d+)$/)!;
+      const tipo: TipoPlano = tipoOriginal === 'TERRENO' ? 'terreno' : 'casa';
+      const modelo = modeloOriginal === 'EMAPICA-ACACIA' ? 'ACACIA' : modeloOriginal;
+      const etapa = String(numeroEtapa);
+      const propiedad = { ...original, manzana, lote, tipo, modelo,
+        etapa_id: etapasPorCodigo.get(etapa)?.id ?? original.etapa_id };
+      return [{ codigo, etapa, etapaNombre: 'Etapa ' + etapa, manzana, lote, modelo,
+        tipo, tipoOriginal, estado, propiedad }];
+    }
     // Una ficha sin coincidencia o con codigo repetido conserva su identidad y operacion.
     const etapa = porEtapa.get(original.etapa_id ?? '');
     return [{ codigo: codigoUbicacionSF(original) ?? original.cuh,
-      etapa: etapa?.codigo ?? '', etapaNombre: etapa?.nombre ?? '',
+      etapa: etapa && Number(etapa.codigo) >= 1 && Number(etapa.codigo) <= 21 ? etapa.codigo : '', etapaNombre: etapa?.nombre ?? '',
       manzana: original.manzana ?? '', lote: original.lote ?? '',
       modelo: original.modelo ?? '', tipo: original.tipo, tipoOriginal: original.tipo,
       estado, propiedad: original }];

@@ -129,3 +129,15 @@ test('plano operativo conserva todas las propiedades libres, separadas y ocupada
   assert.equal(JSON.stringify(originales),antes);
   assert.equal(sandbox.exports.construirPlanoOperativo([],[]).length,0);
 });
+
+test('la etapa del Excel prevalece sobre etapa cero incluso en fichas con codigo repetido', () => {
+  const filas=[propiedad({id:'a',ubicacion:'SF-1_3',etapa_id:'cero',estado_fisico:'libre'}),propiedad({id:'b',ubicacion:'SF-1_3',etapa_id:'cero',estado_fisico:'separado'})];
+  const unidades=sandbox.exports.construirPlanoOperativo(filas,[{id:'cero',codigo:'0'},{id:'uno',codigo:'1'}]);
+  assert.equal(unidades.length,2);
+  for(const u of unidades) {
+    assert.equal(u.etapa,'1');assert.equal(u.manzana,'1');assert.equal(u.lote,'3');assert.equal(u.propiedad.etapa_id,'uno');
+    assert.equal(u.estado,filas.find(p=>p.id===u.propiedad.id).estado_fisico);
+  }
+  const sinReferencia=sandbox.exports.construirPlanoOperativo([propiedad({ubicacion:'SF-999_999',etapa_id:'cero'})],[{id:'cero',codigo:'0'}]);
+  assert.equal(sinReferencia[0].etapa,'');
+});
