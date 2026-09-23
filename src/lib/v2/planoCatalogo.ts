@@ -111,7 +111,7 @@ export function construirPlanoOperativo(propiedades: Propiedad[], etapas: Etapa[
     // Una ficha sin coincidencia o con codigo repetido conserva su identidad y operacion.
     const etapa = porEtapa.get(original.etapa_id ?? '');
     return [{ codigo: codigoUbicacionSF(original) ?? original.cuh,
-      etapa: etapa && Number(etapa.codigo) >= 1 && Number(etapa.codigo) <= 21 ? etapa.codigo : '', etapaNombre: etapa?.nombre ?? '',
+      etapa: etapa && Number(etapa.codigo) >= 1 && Number(etapa.codigo) <= 21 ? etapa.codigo : '', etapaNombre: etapa && Number(etapa.codigo) >= 1 && Number(etapa.codigo) <= 21 ? etapa.nombre : '',
       manzana: original.manzana ?? '', lote: original.lote ?? '',
       modelo: original.modelo ?? '', tipo: original.tipo, tipoOriginal: original.tipo,
       estado, propiedad: original }];

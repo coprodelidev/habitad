@@ -141,3 +141,18 @@ test('la etapa del Excel prevalece sobre etapa cero incluso en fichas con codigo
   const sinReferencia=sandbox.exports.construirPlanoOperativo([propiedad({ubicacion:'SF-999_999',etapa_id:'cero'})],[{id:'cero',codigo:'0'}]);
   assert.equal(sinReferencia[0].etapa,'');
 });
+
+test('las 3804 ubicaciones toman etapa y coordenadas del Excel conservando estados y precios', () => {
+ const estados=['libre','separado','ocupado'];
+ const props=ARTICULOS_SF.map((r,i)=>propiedad({id:String(i),ubicacion:r[0],etapa_id:'cero',estado_fisico:estados[i%3]}));
+ const etapas=[{id:'cero',codigo:'0',nombre:'Etapa 0'},...Array.from({length:21},(_,i)=>({id:'e'+(i+1),codigo:String(i+1),nombre:'Etapa '+(i+1)}))];
+ const result=sandbox.exports.construirPlanoOperativo(props,etapas);
+ assert.equal(result.length,3804);
+ const byId=new Map(result.map(u=>[u.propiedad.id,u]));
+ ARTICULOS_SF.forEach(([code,stage],i)=>{
+  const u=byId.get(String(i));const parts=code.slice(3).split('_');
+  assert.equal(u.etapa,String(stage));assert.equal(u.propiedad.etapa_id,'e'+stage);
+  assert.equal(u.manzana,parts[0]);assert.equal(u.lote,parts[1]);
+  assert.equal(u.estado,estados[i%3]);assert.equal(u.propiedad.precio_venta,12000);
+ });
+});
